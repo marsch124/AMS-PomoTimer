@@ -215,7 +215,11 @@
             </div>
 
             <div class="waiting-banner" id="waiting-banner" hidden>
-                <div class="waiting-text">Phase finished.</div>
+                <div class="waiting-text" id="waiting-text">Phase finished.</div>
+                <div class="ext-row" id="ext-row">
+                    <button class="btn btn-secondary" id="btn-ext-1"><svg class="ic"><use href="#i-plus"/></svg> 1 min more</button>
+                    <button class="btn btn-secondary" id="btn-ext-5"><svg class="ic"><use href="#i-plus"/></svg> 5 min more</button>
+                </div>
                 <button class="btn btn-primary btn-wide" id="btn-start-next"><svg class="ic"><use href="#i-play"/></svg> Start next phase</button>
             </div>
 
@@ -439,7 +443,7 @@
                     <div class="help-icon" style="--c:var(--phase-pause)"><svg class="ic"><use href="#i-pause"/></svg></div>
                     <div>
                         <div class="help-title">While a session runs</div>
-                        <p>The big button pauses and resumes. <b>Skip</b> jumps to the next phase, <b>Prev</b> restarts the current one (or goes back if you just started it). <b>+1 / −1 min</b> adjusts the running phase. The list under the controls shows every phase; tap one to jump straight to it. The bar shows how far the whole session has come and when it will end. Leaving the screen does not stop the timer; a <b>Continue</b> card on the Timer tab brings you back.</p>
+                        <p>The big button pauses and resumes. <b>Skip</b> jumps to the next phase, <b>Prev</b> restarts the current one (or goes back if you just started it). <b>+1 / −1 min</b> adjusts the running phase. When a phase rings out and you are not quite ready, <b>1 min more</b> or <b>5 min more</b> reopens that phase for the extra time; the next phase then starts fresh afterwards. The offer stays on screen while the timer waits for your tap, or for two minutes after an automatic advance. The list under the controls shows every phase; tap one to jump straight to it. The bar shows how far the whole session has come and when it will end. Leaving the screen does not stop the timer; a <b>Continue</b> card on the Timer tab brings you back.</p>
                     </div>
                 </div>
                 <div class="help-item">
@@ -470,6 +474,13 @@
                 <div class="version-head">
                     <span class="version-name">AMS PomoTimer</span>
                     <span class="version-num" id="about-version"></span>
+                </div>
+                <div class="version-block">
+                    <div class="version-title">1.2.0 <span class="muted">· 3 September 2026</span></div>
+                    <ul>
+                        <li><b>More time after a phase ends.</b> When a phase rings out, the timer offers <b>1 min more</b> and <b>5 min more</b>. Tapping one reopens that phase for the extra time, and the next phase starts fresh afterwards. Handy when the Pomodoro is over but the thought is not.</li>
+                        <li>The offer stays on screen while the timer waits for your tap, or for two minutes after an automatic advance. Extra time adds to your focus minutes without counting the Pomodoro twice.</li>
+                    </ul>
                 </div>
                 <div class="version-block">
                     <div class="version-title">1.1.0 <span class="muted">· 3 September 2026</span></div>

@@ -1,6 +1,10 @@
 /* AMS PomoTimer — UI and app wiring */
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
+
+// After an automatic advance, the "1 / 5 min more" offer for the phase that
+// just rang out stays on screen for this long.
+const EXTEND_GRACE_MS = 2 * 60 * 1000;
 
 const $ = (sel, root) => (root || document).querySelector(sel);
 const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -296,7 +300,6 @@ function renderTimer(full) {
         $('#phase-type-label').textContent = info.label;
         $('#phase-name').textContent = step.label;
         $('#phase-count').textContent = `Phase ${snap.index + 1} of ${snap.count}`;
-        $('#waiting-banner').hidden = status !== 'waiting';
         const paused = status === 'paused';
         setIcon($('#pause-icon'), status === 'running' ? 'pause' : 'play');
         $('#pause-label').textContent = status === 'running' ? 'Pause' : (status === 'waiting' ? 'Start' : 'Resume');
@@ -320,12 +323,35 @@ function renderTimer(full) {
         Wake.sync();
     }
 
+    renderExtendBanner(snap);
     $('#time-big').textContent = fmtClock(snap.remainingMs);
     $('#ring-fg').style.strokeDashoffset = (RING_C * (1 - snap.phaseFraction)).toFixed(2);
     const doneMs = snap.sessionTotalMs - snap.sessionRemainingMs;
     $('#session-fill').style.width = (snap.sessionTotalMs ? doneMs / snap.sessionTotalMs * 100 : 0).toFixed(2) + '%';
     $('#session-text').innerHTML = `<span>Session ${fmtClock(doneMs)}</span><span>${fmtClock(snap.sessionRemainingMs)} left · ends ${fmtTime(Date.now() + snap.sessionRemainingMs)}</span>`;
     document.title = status === 'running' ? `${fmtClock(snap.remainingMs)} · ${step.label} — AMS PomoTimer` : 'AMS PomoTimer';
+}
+
+/* The "phase finished" banner: while waiting for a tap it offers the next
+   phase plus a bit more time for the one that ended; after an automatic
+   advance it offers just the extra time, for a couple of minutes. */
+let lastBannerKey = null;
+function renderExtendBanner(snap) {
+    const { run, status } = snap;
+    const lf = snap.lastFinished;
+    const inGrace = !!lf && (Date.now() - lf.at) < EXTEND_GRACE_MS;
+    const show = status === 'waiting' || (inGrace && status === 'running');
+    const key = show ? `${status}:${lf ? lf.index : '-'}` : 'hidden';
+    if (key === lastBannerKey) return;
+    lastBannerKey = key;
+    const banner = $('#waiting-banner');
+    banner.hidden = !show;
+    if (!show) return;
+    const finishedStep = lf ? run.steps[lf.index] : null;
+    const name = finishedStep ? finishedStep.label : 'Phase';
+    $('#waiting-text').textContent = status === 'waiting' ? `${name} finished.` : `${name} finished. Not quite ready?`;
+    $('#ext-row').hidden = !lf;
+    $('#btn-start-next').hidden = status !== 'waiting';
 }
 
 function startUiLoop() {
@@ -336,7 +362,7 @@ function startUiLoop() {
 }
 
 /* Timer engine events */
-Timer.on('phase', ({ run, step, reason, finished }) => {
+Timer.on('phase', ({ run, step, reason, finished, extraSec }) => {
     lastRenderedIndex = -1;
     const isBreak = step.type === 'pause' || step.type === 'longbreak' || step.type === 'cooldown';
     if (reason === 'complete') {
@@ -347,6 +373,8 @@ Timer.on('phase', ({ run, step, reason, finished }) => {
     } else if (reason === 'start') {
         Sound.chime(isBreak ? 'break' : 'focus');
         vibrate([120]);
+    } else if (reason === 'extend') {
+        toast(`${fmtDuration(extraSec)} more for ${step.label}`);
     }
     if (currentScreen === 'timer') renderTimer(true);
     else if (currentScreen === 'home') renderHome();
@@ -594,6 +622,8 @@ function bind() {
         renderTimer(true);
     });
     $('#btn-start-next').addEventListener('click', () => { Timer.startWaiting(); renderTimer(true); });
+    $('#btn-ext-1').addEventListener('click', () => { if (Timer.extendFinished(60)) renderTimer(true); });
+    $('#btn-ext-5').addEventListener('click', () => { if (Timer.extendFinished(300)) renderTimer(true); });
     $('#btn-next').addEventListener('click', () => Timer.next());
     $('#btn-prev').addEventListener('click', () => Timer.prev());
     $('#btn-plus').addEventListener('click', () => { Timer.adjust(60); renderTimer(false); });

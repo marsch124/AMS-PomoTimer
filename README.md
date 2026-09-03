@@ -11,6 +11,7 @@ A mobile-first Pomodoro timer with **phases**, not just a 25-minute countdown. A
 - **Quick start** — Tap a template on the home screen and it starts immediately. The last-used template is listed first. There is also a one-phase quick timer (5 / 10 / 15 / 25 / 45 / 60 minutes, or any number).
 - **Timer screen** — Big countdown with a progress ring in the phase colour, phase list you can jump around in, session progress bar with the expected end time, and controls for pause, skip, previous, +1 / −1 minute.
 - **Auto-advance or wait** — Phases can start automatically or wait for a tap. Set it globally or per template.
+- **Not quite ready?** — When a phase rings out, tap *1 min more* or *5 min more* to reopen it for the extra time. The next phase starts fresh afterwards.
 - **Alerts** — Chimes (different for focus and break), vibration, optional notifications, and countdown ticks in the last three seconds.
 - **Keep screen awake** — Uses the Wake Lock API while a session is running.
 - **History** — Every session is logged with Pomodoros completed and focus minutes. Today, this week, and all-time stats.
@@ -76,6 +77,9 @@ Then open http://localhost:7794.
 
 
 ## Version history
+
+**v1.2.0 (2026-09-03)**
+- "1 min more" / "5 min more" after a phase ends: reopens the finished phase for the extra time, while waiting for a tap or for two minutes after an automatic advance. Extra time counts as focus minutes without counting the Pomodoro twice.
 
 **v1.1.0 (2026-09-03)**
 - Hand-drawn SVG icons throughout: tab bar, timer controls, editor, template icons (15 to choose from), phase symbols (sunrise, checklist, tomato, coffee, lotus, moon) and a hand-drawn app icon.

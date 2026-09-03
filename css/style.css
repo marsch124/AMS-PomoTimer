@@ -518,8 +518,16 @@ select {
     width: 100%;
     margin-top: 0.8rem;
     text-align: center;
+    background: var(--surface);
+    border: 1px solid color-mix(in srgb, var(--phase) 55%, var(--border));
+    border-radius: var(--radius);
+    padding: 0.8rem 0.9rem;
+    box-shadow: 0 0 22px color-mix(in srgb, var(--phase) 25%, transparent);
 }
-.waiting-text { color: var(--text-2); font-size: 0.9rem; }
+.waiting-text { color: var(--text); font-weight: 600; font-size: 0.95rem; }
+.ext-row { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
+.ext-row .btn { flex: 1; }
+.ext-row + .btn-wide { margin-top: 0.6rem; }
 
 .timer-controls {
     display: flex;

@@ -100,11 +100,15 @@ const Timer = (() => {
         const step = currentStep();
         if (!step) return;
         const elapsedSec = Math.round(elapsedInPhaseMs() / 1000);
-        if (step.type === 'focus') {
-            run.focusSec += elapsedSec;
-            if (completed || elapsedSec >= step.seconds * 0.8) run.pomodoros++;
+        if (step.type === 'focus') run.focusSec += elapsedSec;
+        // A phase that was extended with "1 / 5 min more" has already been
+        // counted; the extra time adds focus minutes but not a second Pomodoro.
+        if (step.credited) return;
+        if (completed || elapsedSec >= step.seconds * 0.8) {
+            step.credited = true;
+            run.phasesDone++;
+            if (step.type === 'focus') run.pomodoros++;
         }
-        if (completed || elapsedSec >= step.seconds * 0.8) run.phasesDone++;
     }
 
     function enterPhase(index, startNow, anchorTs) {
@@ -133,6 +137,9 @@ const Timer = (() => {
         run.remainingMs = 0;
         run.status = 'paused';
         creditPhase(true);
+        // Remembered so the user can still add a minute or five to this phase
+        // after it has rung out ("not quite ready yet").
+        run.lastFinished = { index: finishedIndex, at: now() };
 
         if (run.index + 1 < run.steps.length) {
             // When auto-advancing, anchor the next phase to the moment this one
@@ -225,6 +232,7 @@ const Timer = (() => {
     /* Start the phase we are waiting on (manual advance mode). */
     function startWaiting() {
         if (!run || run.status !== 'waiting') return;
+        run.lastFinished = null;
         resume();
         emit('phase', { run, step: currentStep(), index: run.index, reason: 'manual' });
     }
@@ -233,9 +241,31 @@ const Timer = (() => {
         if (!run) return;
         if (index < 0 || index >= run.steps.length) return;
         creditPhase(false);
+        run.lastFinished = null;
         enterPhase(index, true);
         persist();
         emit('phase', { run, step: currentStep(), index, reason: 'jump' });
+    }
+
+    /* Reopen the phase that just rang out and run it for `sec` more seconds.
+       Works while the timer waits for a tap and, for a short grace period,
+       after an automatic advance. The next phase then starts fresh afterwards. */
+    function extendFinished(sec) {
+        if (!run || !run.lastFinished) return false;
+        const index = run.lastFinished.index;
+        if (index < 0 || index >= run.steps.length) return false;
+        run.index = index;
+        run.phaseTotalMs = sec * 1000;
+        run.status = 'running';
+        run.phaseStartedAt = now();
+        run.endsAt = now() + run.phaseTotalMs;
+        run.remainingMs = null;
+        run.lastFinished = null;
+        lastTickSecond = null;
+        persist();
+        ensureTicking();
+        emit('phase', { run, step: currentStep(), index, reason: 'extend', extraSec: sec });
+        return true;
     }
 
     function next() {
@@ -294,11 +324,12 @@ const Timer = (() => {
             phaseFraction: run.phaseTotalMs > 0 ? Math.min(1, Math.max(0, rem / run.phaseTotalMs)) : 0,
             sessionTotalMs: sessionTotal,
             sessionRemainingMs: sessionRemaining,
-            nextStep: run.steps[run.index + 1] || null
+            nextStep: run.steps[run.index + 1] || null,
+            lastFinished: run.lastFinished || null
         };
     }
 
     function isActive() { return !!run; }
 
-    return { on, start, restore, pause, resume, toggle, startWaiting, jumpTo, next, prev, adjust, stop, tick, snapshot, isActive };
+    return { on, start, restore, pause, resume, toggle, startWaiting, jumpTo, extendFinished, next, prev, adjust, stop, tick, snapshot, isActive };
 })();
