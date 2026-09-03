@@ -13,6 +13,9 @@ A mobile-first Pomodoro timer with **phases**, not just a 25-minute countdown. A
 - **Auto-advance or wait** — Phases can start automatically or wait for a tap. Set it globally or per template.
 - **Not quite ready?** — When a phase rings out, tap *1 min more* or *5 min more* to reopen it for the extra time. The next phase starts fresh afterwards.
 - **Alerts** — Chimes (different for focus and break), vibration, optional notifications, and countdown ticks in the last three seconds.
+- **Works with the screen locked** — An inaudible track keeps the timer and the chimes alive in the background, and the lock screen shows play / pause / skip with the current phase. Chimes play even with the ring switch on silent.
+- **Voice announcements** — Optional spoken cue at every phase change.
+- **Hold to adjust** — Hold a quick-start card to change the number of Pomodoros, wait-for-tap, and note what you intend to work on before starting.
 - **Keep screen awake** — Uses the Wake Lock API while a session is running.
 - **History** — Every session is logged with Pomodoros completed and focus minutes. Today, this week, and all-time stats.
 - **Export / import** — Templates, history and settings as one JSON file.
@@ -58,6 +61,7 @@ AMS-PomoTimer/
 ├── js/
 │   ├── store.js      # Templates, settings, history (localStorage)
 │   ├── timer.js      # Timer engine (timestamp based, survives reloads)
+│   ├── audio.js      # Synthesised chimes, keep-alive track, voice
 │   └── app.js        # Screens and UI wiring
 └── icons/
     ├── icon.svg      # Hand-drawn app icon (source)
@@ -77,6 +81,11 @@ Then open http://localhost:7794.
 
 
 ## Version history
+
+**v1.3.0 (2026-09-03)**
+- Alerts with the screen locked: inaudible keep-alive track while a session runs, lock-screen transport controls, chimes through the media channel.
+- Voice announcements (optional).
+- Hold a template to open the start sheet: Pomodoro count, wait-for-tap, intention, phase preview and end time.
 
 **v1.2.0 (2026-09-03)**
 - "1 min more" / "5 min more" after a phase ends: reopens the finished phase for the extra time, while waiting for a tap or for two minutes after an automatic advance. Extra time counts as focus minutes without counting the Pomodoro twice.

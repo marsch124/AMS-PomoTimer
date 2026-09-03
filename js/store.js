@@ -41,7 +41,9 @@ const Store = (() => {
         sound: true,
         vibrate: true,
         notify: false,
-        theme: 'system'
+        theme: 'system',
+        bgAudio: true,   // keep an inaudible track playing so alerts work when locked
+        voice: false     // spoken announcements at each phase change
     };
 
     function uid(prefix) {

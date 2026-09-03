@@ -1,6 +1,6 @@
 /* AMS PomoTimer — UI and app wiring */
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 
 // After an automatic advance, the "1 / 5 min more" offer for the phase that
 // just rang out stays on screen for this long.
@@ -105,6 +105,9 @@ const Sound = (() => {
             if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
             if (ctx.state === 'suspended') ctx.resume();
         } catch (e) { /* no audio available */ }
+        // The media elements must be started inside a tap as well.
+        BgAudio.prime();
+        syncKeepAlive();
     }
     function tone(freq, at, dur, vol, type) {
         if (!ctx) return;
@@ -122,6 +125,8 @@ const Sound = (() => {
     }
     function chime(kind) {
         if (!Store.getSettings().sound) return;
+        // Media elements keep working with the screen locked; Web Audio is the fallback.
+        if (BgAudio.playChime(kind)) return;
         unlock();
         if (!ctx) return;
         switch (kind) {
@@ -143,6 +148,48 @@ const Sound = (() => {
     }
     return { unlock, chime };
 })();
+
+/* The inaudible keep-alive loop runs whenever a session exists (paused or
+   not) and the setting allows it. */
+function syncKeepAlive() {
+    BgAudio.setKeepAlive(Store.getSettings().bgAudio && Timer.isActive());
+}
+
+/* Lock-screen / control-centre transport controls. They appear as soon as
+   the keep-alive track plays, and show the phase and template. */
+const MediaCtl = (() => {
+    const ok = 'mediaSession' in navigator;
+    function bind() {
+        if (!ok) return;
+        const set = (a, fn) => { try { navigator.mediaSession.setActionHandler(a, fn); } catch (e) { /* unsupported action */ } };
+        set('play', () => { const s = Timer.snapshot(); if (!s) return; if (s.status === 'waiting') Timer.startWaiting(); else Timer.resume(); renderTimer(true); });
+        set('pause', () => { Timer.pause(); renderTimer(true); });
+        set('nexttrack', () => Timer.next());
+        set('previoustrack', () => Timer.prev());
+        set('stop', () => Timer.stop());
+    }
+    function update() {
+        if (!ok) return;
+        const s = Timer.snapshot();
+        try {
+            if (!s) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; return; }
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: `${s.step.label} · ${fmtDuration(s.step.seconds)}`,
+                artist: s.run.name,
+                album: 'AMS PomoTimer',
+                artwork: [{ src: new URL('icons/icon-512.png', location.href).href, sizes: '512x512', type: 'image/png' }]
+            });
+            navigator.mediaSession.playbackState = s.status === 'running' ? 'playing' : 'paused';
+        } catch (e) { /* ignore */ }
+    }
+    return { bind, update };
+})();
+
+/* Spoken announcements, if enabled. */
+function announce(text) {
+    if (!Store.getSettings().voice) return;
+    Voice.say(text);
+}
 
 function vibrate(pattern) {
     if (!Store.getSettings().vibrate) return;
@@ -253,7 +300,7 @@ function renderHome() {
     $('#home-version').textContent = 'AMS PomoTimer v' + APP_VERSION;
 }
 
-function startTemplate(tpl) {
+function startTemplate(tpl, opts) {
     if (!tpl) return;
     if (Timer.isActive()) {
         // Starting a new one replaces the current session; ask first.
@@ -262,22 +309,126 @@ function startTemplate(tpl) {
             suppressDoneScreen = true;
             Timer.stop();
             suppressDoneScreen = false;
-            beginRun(tpl);
+            beginRun(tpl, opts);
         });
         return;
     }
-    beginRun(tpl);
+    beginRun(tpl, opts);
 }
 
 let lastStartedTemplate = null;
 let suppressDoneScreen = false;
 
-function beginRun(tpl) {
+function beginRun(tpl, opts) {
     Sound.unlock();
-    const run = Timer.start(tpl);
+    const run = Timer.start(tpl, opts || {});
     if (!run) { toast('This template has no phases with a duration.'); return; }
     lastStartedTemplate = tpl;
+    syncKeepAlive();
+    MediaCtl.update();
     showScreen('timer');
+}
+
+/* ================= Start sheet (long-press a template) ================= */
+let sheet = null; // { tpl, count, wait, steps, hasFocus }
+let suppressClickUntil = 0;
+
+/* Rebuild a template's phases for a different number of Pomodoros. Phases
+   before the first Pomodoro and after the last one are kept as they are; in
+   between, the template's own pattern of breaks is repeated. */
+function rebuildSteps(steps, count) {
+    const first = steps.findIndex(s => s.type === 'focus');
+    if (first < 0) return steps.map(s => ({ ...s }));
+    let last = first;
+    steps.forEach((s, i) => { if (s.type === 'focus') last = i; });
+    const prefix = steps.slice(0, first);
+    const suffix = steps.slice(last + 1);
+    const focusStep = steps[first];
+    const breaks = [];
+    let cur = [];
+    for (let i = first + 1; i <= last; i++) {
+        if (steps[i].type === 'focus') { breaks.push(cur); cur = []; }
+        else cur.push(steps[i]);
+    }
+    const core = [];
+    for (let i = 0; i < count; i++) {
+        core.push({ ...focusStep, id: Store.uid('s') });
+        if (i < count - 1) {
+            const pattern = breaks.length ? breaks[i % breaks.length] : [Store.step('pause', 5)];
+            pattern.forEach(b => core.push({ ...b, id: Store.uid('s') }));
+        }
+    }
+    return [...prefix, ...core, ...suffix].map(s => ({ ...s }));
+}
+
+function openStartSheet(tpl) {
+    if (!tpl) return;
+    const settings = Store.getSettings();
+    const count = tpl.steps.filter(s => s.type === 'focus').length;
+    sheet = {
+        tpl,
+        count,
+        hasFocus: count > 0,
+        wait: tpl.autoAdvance === false ? true : tpl.autoAdvance === true ? false : !settings.autoAdvance,
+        steps: tpl.steps.map(s => ({ ...s }))
+    };
+    $('#sheet-icon').innerHTML = icon(Store.iconFor(tpl));
+    $('#sheet-icon').style.background = tpl.color || '#FF2E63';
+    $('#sheet-title').textContent = tpl.name || 'Untitled';
+    $('#sheet-pomo-row').hidden = !sheet.hasFocus;
+    $('#sheet-wait').checked = sheet.wait;
+    $('#sheet-intention').value = '';
+    renderSheet();
+    $('#sheet').hidden = false;
+}
+
+function renderSheet() {
+    if (!sheet) return;
+    sheet.steps = sheet.hasFocus ? rebuildSteps(sheet.tpl.steps, sheet.count) : sheet.tpl.steps.map(s => ({ ...s }));
+    $('#sheet-pomo-count').textContent = sheet.count;
+    $('#sheet-pomo-minus').disabled = sheet.count <= 1;
+    $('#sheet-pomo-plus').disabled = sheet.count >= 12;
+    $('#sheet-segments').innerHTML = segmentsHtml(sheet.steps);
+    $('#sheet-phases').innerHTML = sheet.steps.map(s =>
+        `<span class="mini-phase" style="--c:${phaseInfo(s.type).color}">${icon(phaseInfo(s.type).icon, 'ic-xs')} ${esc(fmtDuration(s.seconds))}</span>`).join('');
+    const total = sheet.steps.reduce((a, s) => a + s.seconds, 0);
+    $('#sheet-summary').textContent = `${sheet.steps.length} phases · ${fmtDuration(total)} · ends ${fmtTime(Date.now() + total * 1000)}`;
+}
+
+function closeSheet() {
+    $('#sheet').hidden = true;
+    sheet = null;
+}
+
+function startFromSheet() {
+    if (!sheet) return;
+    const tpl = { ...sheet.tpl, steps: sheet.steps, autoAdvance: sheet.wait ? false : true };
+    const intention = $('#sheet-intention').value.trim();
+    closeSheet();
+    startTemplate(tpl, { intention });
+}
+
+/* Long-press detection for pointer devices and touch alike. */
+function bindLongPress(container, selector, onLong) {
+    let timer = null, startX = 0, startY = 0;
+    const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+    container.addEventListener('pointerdown', e => {
+        const el = e.target.closest(selector);
+        if (!el) return;
+        startX = e.clientX; startY = e.clientY;
+        cancel();
+        timer = setTimeout(() => {
+            timer = null;
+            suppressClickUntil = Date.now() + 700;
+            vibrate([25]);
+            onLong(el);
+        }, 450);
+    });
+    container.addEventListener('pointermove', e => {
+        if (timer && (Math.abs(e.clientX - startX) > 12 || Math.abs(e.clientY - startY) > 12)) cancel();
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => container.addEventListener(ev, cancel));
+    container.addEventListener('contextmenu', e => { if (e.target.closest(selector)) e.preventDefault(); });
 }
 
 /* ================= Timer screen ================= */
@@ -376,9 +527,19 @@ Timer.on('phase', ({ run, step, reason, finished, extraSec }) => {
     } else if (reason === 'extend') {
         toast(`${fmtDuration(extraSec)} more for ${step.label}`);
     }
+    if (reason === 'complete' && run.status === 'waiting') announce(`${finished ? finished.label : 'Phase'} finished. Tap to start ${step.label}.`);
+    else if (reason === 'complete' || reason === 'start' || reason === 'manual') announce(`${step.label}. ${voiceDuration(step.seconds)}.`);
+    else if (reason === 'extend') announce(`${voiceDuration(extraSec)} more.`);
+    MediaCtl.update();
     if (currentScreen === 'timer') renderTimer(true);
     else if (currentScreen === 'home') renderHome();
 });
+
+function voiceDuration(sec) {
+    const m = Math.round(sec / 60);
+    if (sec < 60) return `${sec} seconds`;
+    return m === 1 ? '1 minute' : `${m} minutes`;
+}
 
 Timer.on('tick', ({ secondsLeft }) => {
     if (Store.getSettings().ticks) Sound.chime('tick');
@@ -387,17 +548,21 @@ Timer.on('tick', ({ secondsLeft }) => {
 Timer.on('done', ({ run, entry }) => {
     lastRenderedIndex = -1;
     Wake.release();
+    syncKeepAlive();
+    MediaCtl.update();
     document.title = 'AMS PomoTimer';
     if (suppressDoneScreen) return;
     if (run.completed) {
         Sound.chime('done');
         vibrate([300, 100, 300, 100, 500]);
         notify('Session complete', `${run.name}: ${run.pomodoros} Pomodoros, ${fmtDuration(run.focusSec)} focus`);
+        announce('Session complete. Well done.');
     }
     showDone(run);
 });
 
 Timer.on('change', () => {
+    MediaCtl.update();
     if (currentScreen === 'timer') renderTimer(false);
 });
 
@@ -557,6 +722,9 @@ function renderSettings() {
     $('#set-vibrate').checked = s.vibrate;
     $('#set-notify').checked = s.notify && ('Notification' in window) && Notification.permission === 'granted';
     $('#set-theme').value = s.theme;
+    $('#set-bgaudio').checked = s.bgAudio;
+    $('#set-voice').checked = s.voice && Voice.supported();
+    $('#set-voice').disabled = !Voice.supported();
     $('#about-version').textContent = 'v' + APP_VERSION;
     $('#set-wake').disabled = !('wakeLock' in navigator);
     $('#set-vibrate').disabled = !('vibrate' in navigator);
@@ -593,11 +761,23 @@ function bind() {
     $('#btn-home-settings').addEventListener('click', () => showScreen('settings'));
     $('#btn-resume').addEventListener('click', () => showScreen('timer'));
     $('#quick-grid').addEventListener('click', e => {
+        if (Date.now() < suppressClickUntil) return; // a long-press just opened the sheet
         const card = e.target.closest('.quick-card');
         if (!card) return;
         if (card.dataset.action === 'new') { openEditor(Store.newTemplate(), true); return; }
         startTemplate(Store.getTemplate(card.dataset.id));
     });
+    bindLongPress($('#quick-grid'), '.quick-card[data-id]', card => openStartSheet(Store.getTemplate(card.dataset.id)));
+    bindLongPress($('#template-list'), '.tpl-play', btn => openStartSheet(Store.getTemplate(btn.dataset.start)));
+
+    // Start sheet
+    $('#sheet').addEventListener('click', e => { if (e.target === $('#sheet')) closeSheet(); });
+    $('#sheet-cancel').addEventListener('click', closeSheet);
+    $('#sheet-start').addEventListener('click', startFromSheet);
+    $('#sheet-pomo-minus').addEventListener('click', () => { if (sheet && sheet.count > 1) { sheet.count--; renderSheet(); } });
+    $('#sheet-pomo-plus').addEventListener('click', () => { if (sheet && sheet.count < 12) { sheet.count++; renderSheet(); } });
+    $('#sheet-wait').addEventListener('change', e => { if (sheet) sheet.wait = e.target.checked; });
+    $('#sheet-intention').addEventListener('keydown', e => { if (e.key === 'Enter') startFromSheet(); });
     $('#quick-chips').addEventListener('click', e => {
         const chip = e.target.closest('.chip');
         if (chip) startTemplate(Store.quickTemplate(+chip.dataset.min));
@@ -647,6 +827,7 @@ function bind() {
     // Templates
     $('#btn-new-template').addEventListener('click', () => openEditor(Store.newTemplate(), true));
     $('#template-list').addEventListener('click', e => {
+        if (Date.now() < suppressClickUntil) return;
         const play = e.target.closest('[data-start]');
         if (play) { startTemplate(Store.getTemplate(play.dataset.start)); return; }
         const edit = e.target.closest('[data-edit]');
@@ -750,6 +931,8 @@ function bind() {
     bindSwitch('#set-ticks', 'ticks');
     bindSwitch('#set-sound', 'sound', on => { if (on) Sound.chime('focus'); });
     bindSwitch('#set-vibrate', 'vibrate', on => { if (on) vibrate([100]); });
+    bindSwitch('#set-bgaudio', 'bgAudio', () => syncKeepAlive());
+    bindSwitch('#set-voice', 'voice', on => { if (on) Voice.say('Voice announcements on.'); });
     $('#set-notify').addEventListener('change', async e => {
         if (!e.target.checked) { Store.saveSettings({ notify: false }); return; }
         if (!('Notification' in window)) { e.target.checked = false; toast('Notifications are not supported here.'); return; }
@@ -806,6 +989,7 @@ function handleLaunchAction() {
 function init() {
     applyTheme();
     bind();
+    MediaCtl.bind();
     startUiLoop();
     const restored = Timer.restore();
     if (restored) {

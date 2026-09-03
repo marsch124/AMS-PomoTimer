@@ -49,6 +49,7 @@ const Timer = (() => {
             color: template.color,
             quick: !!template.quick,
             autoAdvance: auto,
+            intention: (opts && opts.intention) ? String(opts.intention).slice(0, 120) : '',
             steps,
             index: 0,
             status: 'running',
@@ -305,6 +306,12 @@ const Timer = (() => {
         finish(false);
     }
 
+    function setIntention(text) {
+        if (!run) return;
+        run.intention = String(text || '').slice(0, 120);
+        persist();
+    }
+
     /* ---------- Derived state for the UI ---------- */
     function snapshot() {
         if (!run) return null;
@@ -331,5 +338,5 @@ const Timer = (() => {
 
     function isActive() { return !!run; }
 
-    return { on, start, restore, pause, resume, toggle, startWaiting, jumpTo, extendFinished, next, prev, adjust, stop, tick, snapshot, isActive };
+    return { on, start, restore, pause, resume, toggle, startWaiting, jumpTo, extendFinished, next, prev, adjust, stop, setIntention, tick, snapshot, isActive };
 })();
