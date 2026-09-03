@@ -1,6 +1,6 @@
 /* AMS PomoTimer — UI and app wiring */
 
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.4.0';
 
 // After an automatic advance, the "1 / 5 min more" offer for the phase that
 // just rang out stays on screen for this long.
@@ -378,8 +378,17 @@ function openStartSheet(tpl) {
     $('#sheet-pomo-row').hidden = !sheet.hasFocus;
     $('#sheet-wait').checked = sheet.wait;
     $('#sheet-intention').value = '';
+    sheet.tags = Store.cleanTags(tpl.tags);
+    renderSheetTags();
     renderSheet();
     $('#sheet').hidden = false;
+}
+
+function renderSheetTags() {
+    const all = Store.allTags().slice(0, 10);
+    sheet.tags.forEach(t => { if (!all.includes(t)) all.unshift(t); });
+    $('#sheet-tags').innerHTML = all.map(t =>
+        `<button class="chip tag-choice ${sheet.tags.includes(t) ? 'selected' : ''}" data-tag="${esc(t)}">${esc(t)}</button>`).join('');
 }
 
 function renderSheet() {
@@ -404,8 +413,9 @@ function startFromSheet() {
     if (!sheet) return;
     const tpl = { ...sheet.tpl, steps: sheet.steps, autoAdvance: sheet.wait ? false : true };
     const intention = $('#sheet-intention').value.trim();
+    const tags = sheet.tags.slice();
     closeSheet();
-    startTemplate(tpl, { intention });
+    startTemplate(tpl, { intention, tags });
 }
 
 /* Long-press detection for pointer devices and touch alike. */
@@ -451,6 +461,7 @@ function renderTimer(full) {
         $('#phase-type-label').textContent = info.label;
         $('#phase-name').textContent = step.label;
         $('#phase-count').textContent = `Phase ${snap.index + 1} of ${snap.count}`;
+        renderIntention(run);
         const paused = status === 'paused';
         setIcon($('#pause-icon'), status === 'running' ? 'pause' : 'play');
         $('#pause-label').textContent = status === 'running' ? 'Pause' : (status === 'waiting' ? 'Start' : 'Resume');
@@ -481,6 +492,49 @@ function renderTimer(full) {
     $('#session-fill').style.width = (snap.sessionTotalMs ? doneMs / snap.sessionTotalMs * 100 : 0).toFixed(2) + '%';
     $('#session-text').innerHTML = `<span>Session ${fmtClock(doneMs)}</span><span>${fmtClock(snap.sessionRemainingMs)} left · ends ${fmtTime(Date.now() + snap.sessionRemainingMs)}</span>`;
     document.title = status === 'running' ? `${fmtClock(snap.remainingMs)} · ${step.label} — AMS PomoTimer` : 'AMS PomoTimer';
+}
+
+/* Intention line under the ring: tap to edit. Interruption counter next to it. */
+function renderIntention(run) {
+    const el = $('#intention-text');
+    if (run.intention) { el.textContent = run.intention; el.classList.remove('empty'); }
+    else { el.textContent = 'What are you working on? Tap to note it'; el.classList.add('empty'); }
+    const n = run.interruptions || 0;
+    $('#interrupt-count').textContent = n;
+    $('#btn-interrupt').classList.toggle('has-some', n > 0);
+    $('#timer-tags').innerHTML = (run.tags || []).map(t => `<span class="tag-chip small">${esc(t)}</span>`).join('');
+}
+
+function editIntention() {
+    const snap = Timer.snapshot();
+    if (!snap) return;
+    promptDialog('What are you working on?', snap.run.intention || '', 'Save').then(v => {
+        if (v === null) return;
+        Timer.setIntention(v);
+        renderIntention(Timer.snapshot().run);
+    });
+}
+
+/* Small text prompt built on the confirm modal. Resolves null on cancel. */
+function promptDialog(text, value, okLabel) {
+    return new Promise(resolve => {
+        const modal = $('#modal');
+        $('#modal-text').textContent = text;
+        const input = $('#modal-input');
+        input.hidden = false;
+        input.value = value || '';
+        $('#modal-ok').textContent = okLabel || 'OK';
+        modal.hidden = false;
+        setTimeout(() => input.focus(), 50);
+        const ok = $('#modal-ok'), cancel = $('#modal-cancel');
+        const done = (v) => { modal.hidden = true; input.hidden = true; ok.removeEventListener('click', onOk); cancel.removeEventListener('click', onCancel); input.removeEventListener('keydown', onKey); resolve(v); };
+        const onOk = () => done(input.value.trim());
+        const onCancel = () => done(null);
+        const onKey = e => { if (e.key === 'Enter') onOk(); };
+        ok.addEventListener('click', onOk);
+        cancel.addEventListener('click', onCancel);
+        input.addEventListener('keydown', onKey);
+    });
 }
 
 /* The "phase finished" banner: while waiting for a tap it offers the next
@@ -575,8 +629,12 @@ function showDone(run) {
     $('#done-stats').innerHTML = statsHtml([
         { value: run.pomodoros, label: 'Pomodoros' },
         { value: fmtDuration(run.focusSec), label: 'Focus' },
-        { value: `${run.phasesDone}/${run.steps.length}`, label: 'Phases' }
+        { value: run.interruptions || 0, label: 'Interruptions' }
     ]);
+    const extra = [];
+    if (run.intention) extra.push(`<div class="done-intention">“${esc(run.intention)}”</div>`);
+    if (run.tags && run.tags.length) extra.push(`<div class="tag-row">${run.tags.map(t => `<span class="tag-chip">${esc(t)}</span>`).join('')}</div>`);
+    $('#done-extra').innerHTML = extra.join('');
     showScreen('done');
 }
 
@@ -594,7 +652,7 @@ function renderTemplates() {
                 <span class="tpl-icon">${icon(Store.iconFor(t))}</span>
                 <span class="tpl-body">
                     <span class="tpl-name">${esc(t.name || 'Untitled')}</span>
-                    <span class="tpl-meta">${templateMeta(t)}</span>
+                    <span class="tpl-meta">${templateMeta(t)}${(t.tags || []).length ? ' · ' + t.tags.map(x => `<span class="tag-chip small">${esc(x)}</span>`).join(' ') : ''}</span>
                     ${segmentsHtml(t.steps)}
                 </span>
             </button>
@@ -616,11 +674,21 @@ function openEditor(tpl, isNew) {
     $('#btn-editor-duplicate').hidden = isNew;
     ed.icon = Store.iconFor(ed);
     delete ed.emoji;
+    ed.tags = Store.cleanTags(ed.tags);
     renderIconRow();
     renderColorRow();
+    renderTagRow();
     renderAddRow();
     renderSteps();
     showScreen('editor');
+}
+
+function renderTagRow() {
+    const all = Store.allTags();
+    ed.tags.forEach(t => { if (!all.includes(t)) all.unshift(t); });
+    $('#ed-tag-row').innerHTML = all.map(t =>
+        `<button class="chip tag-choice ${ed.tags.includes(t) ? 'selected' : ''}" data-tag="${esc(t)}">${esc(t)}</button>`).join('') +
+        `<button class="chip tag-choice add" data-tag-new="1">${icon('plus', 'ic-xs')} custom</button>`;
 }
 
 function renderIconRow() {
@@ -677,6 +745,7 @@ function saveEditor() {
     ed.autoAdvance = auto === '1' ? true : auto === '0' ? false : null;
     ed.steps = ed.steps.map(s => ({ ...s, label: (s.label || '').trim() || phaseInfo(s.type).label, seconds: Math.max(0, Math.round(s.seconds)) }));
     if (!ed.steps.some(s => s.seconds > 0)) { toast('Add at least one phase with a duration.'); return; }
+    ed.tags = Store.cleanTags(ed.tags);
     ed.builtin = false;
     Store.saveTemplate(ed);
     toast(edIsNew ? 'Template created' : 'Template saved');
@@ -692,6 +761,7 @@ function renderHistory() {
         { value: s.week.pomodoros, label: 'This week' },
         { value: fmtDuration(s.all.focusSec), label: 'All-time focus' }
     ]);
+    renderTagStats(s);
     const list = Store.getHistory();
     const el = $('#history-list');
     if (!list.length) { el.innerHTML = '<div class="empty">No sessions yet. Finish a session and it shows up here.</div>'; return; }
@@ -699,17 +769,35 @@ function renderHistory() {
     list.forEach(h => {
         const day = fmtDay(h.endedAt);
         if (day !== lastDay) { html += `<div class="history-day">${esc(day)}</div>`; lastDay = day; }
+        const tags = (h.tags || []).map(t => `<span class="tag-chip small">${esc(t)}</span>`).join(' ');
+        const intr = h.interruptions ? ` · ${h.interruptions} ${icon('bolt', 'ic-xs')}` : '';
         html += `<div class="history-row ${h.completed ? '' : 'stopped'}" data-id="${esc(h.id)}" style="--tpl-color:${esc(h.color || '#FF2E63')}">
             <span class="h-icon">${icon(Store.iconFor(h))}</span>
             <span class="h-body">
                 <div class="h-name">${esc(h.name)}${h.completed ? '' : ' <span class="muted">· stopped</span>'}</div>
-                <div class="h-meta">${fmtTime(h.startedAt)}–${fmtTime(h.endedAt)} · ${h.pomodoros} ${icon('tomato', 'ic-xs')} · ${h.phasesDone}/${h.phasesTotal} phases</div>
+                ${h.intention ? `<div class="h-intention">“${esc(h.intention)}”</div>` : ''}
+                <div class="h-meta">${fmtTime(h.startedAt)}–${fmtTime(h.endedAt)} · ${h.pomodoros} ${icon('tomato', 'ic-xs')} · ${h.phasesDone}/${h.phasesTotal} phases${intr}${tags ? ' · ' + tags : ''}</div>
             </span>
             <span class="h-focus">${fmtDuration(h.focusSec)}</span>
             <button class="h-del" data-del="${esc(h.id)}" aria-label="Delete">${icon('close', 'ic-sm')}</button>
         </div>`;
     });
     el.innerHTML = html;
+}
+
+/* Focus per tag, this week, as a small ranked list. */
+function renderTagStats(s) {
+    const el = $('#tag-stats');
+    const entries = Object.entries(s.tagsWeek).sort((a, b) => b[1].focusSec - a[1].focusSec);
+    if (!entries.length) { el.innerHTML = ''; $('#tag-stats-title').hidden = true; return; }
+    $('#tag-stats-title').hidden = false;
+    const max = entries[0][1].focusSec || 1;
+    el.innerHTML = entries.map(([tag, v]) => `
+        <div class="tag-stat">
+            <span class="tag-chip">${esc(tag)}</span>
+            <span class="tag-bar"><span style="width:${(v.focusSec / max * 100).toFixed(1)}%"></span></span>
+            <span class="tag-val">${esc(fmtDuration(v.focusSec))} · ${v.pomodoros} ${icon('tomato', 'ic-xs')}</span>
+        </div>`).join('');
 }
 
 /* ================= Settings ================= */
@@ -777,6 +865,13 @@ function bind() {
     $('#sheet-pomo-minus').addEventListener('click', () => { if (sheet && sheet.count > 1) { sheet.count--; renderSheet(); } });
     $('#sheet-pomo-plus').addEventListener('click', () => { if (sheet && sheet.count < 12) { sheet.count++; renderSheet(); } });
     $('#sheet-wait').addEventListener('change', e => { if (sheet) sheet.wait = e.target.checked; });
+    $('#sheet-tags').addEventListener('click', e => {
+        const b = e.target.closest('[data-tag]');
+        if (!b || !sheet) return;
+        const t = b.dataset.tag;
+        sheet.tags = sheet.tags.includes(t) ? sheet.tags.filter(x => x !== t) : Store.cleanTags([...sheet.tags, t]);
+        renderSheetTags();
+    });
     $('#sheet-intention').addEventListener('keydown', e => { if (e.key === 'Enter') startFromSheet(); });
     $('#quick-chips').addEventListener('click', e => {
         const chip = e.target.closest('.chip');
@@ -802,6 +897,13 @@ function bind() {
         renderTimer(true);
     });
     $('#btn-start-next').addEventListener('click', () => { Timer.startWaiting(); renderTimer(true); });
+    $('#intention-line').addEventListener('click', editIntention);
+    $('#btn-interrupt').addEventListener('click', () => {
+        const n = Timer.logInterruption();
+        vibrate([20]);
+        renderIntention(Timer.snapshot().run);
+        toast(n === 1 ? '1 interruption noted' : `${n} interruptions noted`, 1200);
+    });
     $('#btn-ext-1').addEventListener('click', () => { if (Timer.extendFinished(60)) renderTimer(true); });
     $('#btn-ext-5').addEventListener('click', () => { if (Timer.extendFinished(300)) renderTimer(true); });
     $('#btn-next').addEventListener('click', () => Timer.next());
@@ -844,6 +946,19 @@ function bind() {
     $('#ed-color-row').addEventListener('click', e => {
         const b = e.target.closest('[data-color]');
         if (b) { ed.color = b.dataset.color; renderColorRow(); renderIconRow(); }
+    });
+    $('#ed-tag-row').addEventListener('click', async e => {
+        const nb = e.target.closest('[data-tag-new]');
+        if (nb) {
+            const v = await promptDialog('New tag', '', 'Add');
+            if (v) { ed.tags = Store.cleanTags([...ed.tags, v]); renderTagRow(); }
+            return;
+        }
+        const b = e.target.closest('[data-tag]');
+        if (!b) return;
+        const t = b.dataset.tag;
+        ed.tags = ed.tags.includes(t) ? ed.tags.filter(x => x !== t) : Store.cleanTags([...ed.tags, t]);
+        renderTagRow();
     });
     $('#ed-add-row').addEventListener('click', e => {
         const b = e.target.closest('[data-add]');

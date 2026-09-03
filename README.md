@@ -15,7 +15,8 @@ A mobile-first Pomodoro timer with **phases**, not just a 25-minute countdown. A
 - **Alerts** — Chimes (different for focus and break), vibration, optional notifications, and countdown ticks in the last three seconds.
 - **Works with the screen locked** — An inaudible track keeps the timer and the chimes alive in the background, and the lock screen shows play / pause / skip with the current phase. Chimes play even with the ring switch on silent.
 - **Voice announcements** — Optional spoken cue at every phase change.
-- **Hold to adjust** — Hold a quick-start card to change the number of Pomodoros, wait-for-tap, and note what you intend to work on before starting.
+- **Hold to adjust** — Hold a quick-start card to change the number of Pomodoros, wait-for-tap, tags, and note what you intend to work on before starting.
+- **Intention, interruptions, tags** — The intention stays on the timer screen and in History; one tap logs an interruption; tags give you focus minutes per topic each week.
 - **Keep screen awake** — Uses the Wake Lock API while a session is running.
 - **History** — Every session is logged with Pomodoros completed and focus minutes. Today, this week, and all-time stats.
 - **Export / import** — Templates, history and settings as one JSON file.
@@ -81,6 +82,11 @@ Then open http://localhost:7794.
 
 
 ## Version history
+
+**v1.4.0 (2026-09-03)**
+- Intention shown under the ring (tap to edit) and saved with the session.
+- Interruption counter on the timer screen; count in the summary and History.
+- Tags on templates and sessions; History shows focus per tag for the week.
 
 **v1.3.0 (2026-09-03)**
 - Alerts with the screen locked: inaudible keep-alive track while a session runs, lock-screen transport controls, chimes through the media channel.

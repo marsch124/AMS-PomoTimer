@@ -34,6 +34,29 @@ const Store = (() => {
 
     const COLORS = ['#FF2E63', '#FF7A00', '#FFB800', '#2EE86B', '#22D3EE', '#3B82F6', '#B44CFF', '#FF4FD8'];
 
+    /* Suggested tags; any custom word works too. */
+    const TAG_PRESETS = ['work', 'study', 'admin', 'writing', 'reading', 'planning', 'creative', 'health'];
+
+    function cleanTags(list) {
+        if (!Array.isArray(list)) return [];
+        const out = [];
+        list.forEach(t => {
+            const v = String(t || '').trim().toLowerCase().replace(/\s+/g, ' ').slice(0, 20);
+            if (v && !out.includes(v)) out.push(v);
+        });
+        return out.slice(0, 6);
+    }
+
+    /* Every tag ever used on a template or a session, most used first. */
+    function allTags() {
+        const count = {};
+        getTemplates().forEach(t => cleanTags(t.tags).forEach(x => { count[x] = (count[x] || 0) + 1; }));
+        getHistory().forEach(h => cleanTags(h.tags).forEach(x => { count[x] = (count[x] || 0) + 1; }));
+        const list = Object.keys(count).sort((a, b) => count[b] - count[a] || a.localeCompare(b));
+        TAG_PRESETS.forEach(p => { if (!list.includes(p)) list.push(p); });
+        return list;
+    }
+
     const DEFAULT_SETTINGS = {
         autoAdvance: true,
         wakeLock: true,
@@ -249,15 +272,25 @@ const Store = (() => {
         const weekTs = weekStart.getTime();
 
         const out = {
-            today: { sessions: 0, pomodoros: 0, focusSec: 0 },
-            week: { sessions: 0, pomodoros: 0, focusSec: 0 },
-            all: { sessions: 0, pomodoros: 0, focusSec: 0 }
+            today: { sessions: 0, pomodoros: 0, focusSec: 0, interruptions: 0 },
+            week: { sessions: 0, pomodoros: 0, focusSec: 0, interruptions: 0 },
+            all: { sessions: 0, pomodoros: 0, focusSec: 0, interruptions: 0 },
+            tagsWeek: {},
+            tagsAll: {}
+        };
+        const bumpTag = (bucket, tag, h) => {
+            const b = bucket[tag] || (bucket[tag] = { sessions: 0, pomodoros: 0, focusSec: 0 });
+            b.sessions++; b.pomodoros += h.pomodoros || 0; b.focusSec += h.focusSec || 0;
         };
         getHistory().forEach(h => {
-            const bump = b => { b.sessions++; b.pomodoros += h.pomodoros || 0; b.focusSec += h.focusSec || 0; };
+            const bump = b => { b.sessions++; b.pomodoros += h.pomodoros || 0; b.focusSec += h.focusSec || 0; b.interruptions += h.interruptions || 0; };
             bump(out.all);
             if (h.endedAt >= weekTs) bump(out.week);
             if (dayKey(h.endedAt) === today) bump(out.today);
+            cleanTags(h.tags).forEach(tag => {
+                bumpTag(out.tagsAll, tag, h);
+                if (h.endedAt >= weekTs) bumpTag(out.tagsWeek, tag, h);
+            });
         });
         return out;
     }
@@ -295,6 +328,7 @@ const Store = (() => {
                     color: t.color || '#FF2E63',
                     autoAdvance: t.autoAdvance === true ? true : (t.autoAdvance === false ? false : null),
                     builtin: !!t.builtin,
+                    tags: cleanTags(t.tags),
                     steps: t.steps.filter(s => s && PHASE_TYPES[s.type]).map(s => ({
                         id: s.id || uid('s'),
                         type: s.type,
@@ -326,7 +360,7 @@ const Store = (() => {
     }
 
     return {
-        PHASE_TYPES, ICONS, COLORS, uid, step, iconFor,
+        PHASE_TYPES, ICONS, COLORS, TAG_PRESETS, uid, step, iconFor, cleanTags, allTags,
         getTemplates, getTemplate, saveTemplate, deleteTemplate, newTemplate, duplicateTemplate, restoreBuiltins, quickTemplate, templateTotalSec,
         getSettings, saveSettings,
         getHistory, addHistory, deleteHistory, clearHistory, stats, dayKey,

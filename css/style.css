@@ -933,6 +933,76 @@ body[data-tab="templates"] .section-title { color: var(--phase-prep); }
 body[data-tab="history"] .section-title { color: var(--phase-startup); }
 body[data-tab="settings"] .section-title { color: var(--phase-cooldown); }
 
+/* ---------- Intention, interruptions, tags ---------- */
+.intention-row {
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+}
+.intention-line {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    text-align: left;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text);
+}
+.intention-line .ic { color: var(--phase); }
+.intention-line span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.intention-line span.empty { color: var(--text-2); font-weight: 500; }
+.interrupt-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0 0.8rem;
+    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-weight: 800;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+}
+.interrupt-btn .ic { color: var(--phase-prep); }
+.interrupt-btn.has-some { color: var(--text); border-color: color-mix(in srgb, var(--phase-prep) 60%, var(--border)); }
+.interrupt-btn:active { transform: scale(0.95); }
+.tag-row { display: flex; flex-wrap: wrap; gap: 0.35rem; width: 100%; margin-top: 0.5rem; justify-content: center; }
+.tag-row:empty { display: none; }
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: color-mix(in srgb, var(--phase-startup) 22%, var(--surface-2));
+    color: var(--text);
+    border: 1px solid color-mix(in srgb, var(--phase-startup) 50%, var(--border));
+}
+.tag-chip.small { font-size: 0.68rem; padding: 0.05rem 0.45rem; vertical-align: middle; }
+.chip.tag-choice { font-size: 0.85rem; padding: 0.4rem 0.75rem; min-height: 2.1rem; text-transform: lowercase; }
+.chip.tag-choice.selected { border-color: var(--phase-startup); background: color-mix(in srgb, var(--phase-startup) 25%, var(--surface)); }
+.chip.tag-choice.add { color: var(--text-2); border-style: dashed; }
+.done-intention { font-style: italic; color: var(--text); margin: 0 0 0.6rem; }
+.done-content .tag-row { margin-bottom: 1rem; }
+.history-row .h-intention { font-size: 0.82rem; font-style: italic; color: var(--text); opacity: 0.85; margin: 0.1rem 0; }
+.history-row .h-meta .tag-chip { margin-right: 0.15rem; }
+.tag-stats { display: flex; flex-direction: column; gap: 0.45rem; }
+.tag-stat { display: grid; grid-template-columns: auto 1fr auto; gap: 0.6rem; align-items: center; }
+.tag-bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.tag-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--phase-startup), var(--phase-focus)); border-radius: 4px; }
+.tag-val { font-size: 0.78rem; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tag-val .ic { color: var(--phase-focus); }
+#modal-input { margin-bottom: 1rem; }
+
 /* ---------- Start sheet ---------- */
 .sheet-backdrop {
     position: fixed;

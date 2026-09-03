@@ -50,6 +50,8 @@ const Timer = (() => {
             quick: !!template.quick,
             autoAdvance: auto,
             intention: (opts && opts.intention) ? String(opts.intention).slice(0, 120) : '',
+            tags: Store.cleanTags((opts && opts.tags) || template.tags),
+            interruptions: 0,
             steps,
             index: 0,
             status: 'running',
@@ -193,7 +195,10 @@ const Timer = (() => {
             pomodoros: run.pomodoros,
             phasesDone: run.phasesDone,
             phasesTotal: run.steps.length,
-            completed: !!completed
+            completed: !!completed,
+            intention: run.intention || '',
+            tags: Store.cleanTags(run.tags),
+            interruptions: run.interruptions || 0
         };
         // Do not clutter history with quick timers that were stopped at once.
         if (entry.focusSec >= 60 || entry.completed) Store.addHistory(entry);
@@ -312,6 +317,20 @@ const Timer = (() => {
         persist();
     }
 
+    /* One tap per distraction; kept with the session in History. */
+    function logInterruption() {
+        if (!run) return 0;
+        run.interruptions = (run.interruptions || 0) + 1;
+        persist();
+        return run.interruptions;
+    }
+
+    function setTags(tags) {
+        if (!run) return;
+        run.tags = Store.cleanTags(tags);
+        persist();
+    }
+
     /* ---------- Derived state for the UI ---------- */
     function snapshot() {
         if (!run) return null;
@@ -338,5 +357,5 @@ const Timer = (() => {
 
     function isActive() { return !!run; }
 
-    return { on, start, restore, pause, resume, toggle, startWaiting, jumpTo, extendFinished, next, prev, adjust, stop, setIntention, tick, snapshot, isActive };
+    return { on, start, restore, pause, resume, toggle, startWaiting, jumpTo, extendFinished, next, prev, adjust, stop, setIntention, logInterruption, setTags, tick, snapshot, isActive };
 })();

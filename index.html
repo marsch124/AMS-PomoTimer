@@ -80,6 +80,12 @@
         <symbol id="i-party" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4.6 19.6l3.9-11.2 7.3 7.2z"/><path d="M12.3 8.6c.4-2.4 2.1-3.7 4.6-3.3"/><path d="M15.2 12.4c2-.6 3.6.2 4.7 2.1"/><path d="M9.6 5.4l.2.2"/><path d="M18.3 4.8l.2.2"/><path d="M19.8 9.9l.2.2"/><path d="M14 3.6l.2.2"/>
         </symbol>
+        <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13.4 3.4L6.2 13.2h5.2l-1 7.4 7.4-9.9h-5.3z"/>
+        </symbol>
+        <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4.6 5.2c2.4-.3 4.8-.4 7.2-.2l7.6 7.6c.6.6.6 1.6 0 2.2l-4.7 4.7c-.6.6-1.6.6-2.2 0L4.8 11.8c-.4-2.2-.4-4.4-.2-6.6z"/><path d="M8.6 8.4h.2"/>
+        </symbol>
         <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12.2 4.2a7.8 7.8 0 1 1-.4 0"/><path d="M12 11v5.2"/><path d="M12 7.8h.1"/>
         </symbol>
@@ -214,6 +220,18 @@
                 </div>
             </div>
 
+            <div class="intention-row">
+                <button class="intention-line" id="intention-line" aria-label="Edit intention">
+                    <svg class="ic ic-sm"><use href="#i-pen"/></svg>
+                    <span id="intention-text" class="empty">What are you working on? Tap to note it</span>
+                </button>
+                <button class="interrupt-btn" id="btn-interrupt" aria-label="Log an interruption">
+                    <svg class="ic ic-sm"><use href="#i-bolt"/></svg>
+                    <span id="interrupt-count">0</span>
+                </button>
+            </div>
+            <div class="tag-row" id="timer-tags"></div>
+
             <div class="waiting-banner" id="waiting-banner" hidden>
                 <div class="waiting-text" id="waiting-text">Phase finished.</div>
                 <div class="ext-row" id="ext-row">
@@ -260,6 +278,7 @@
             <h2 class="done-title">Session complete</h2>
             <div class="done-sub" id="done-sub"></div>
             <div class="stat-row" id="done-stats"></div>
+            <div id="done-extra"></div>
             <button class="btn btn-primary btn-wide" id="btn-done-again"><svg class="ic"><use href="#i-play"/></svg> Run again</button>
             <button class="btn btn-secondary btn-wide" id="btn-done-home">Back to home</button>
         </main>
@@ -296,6 +315,10 @@
             <div class="field">
                 <span class="field-label">Colour</span>
                 <div class="chip-row" id="ed-color-row"></div>
+            </div>
+            <div class="field">
+                <span class="field-label">Tags</span>
+                <div class="chip-row" id="ed-tag-row"></div>
             </div>
             <label class="field field-row">
                 <span class="field-label">Auto-start next phase</span>
@@ -340,6 +363,8 @@
         </header>
         <main class="content">
             <div class="stat-row" id="history-stats"></div>
+            <h2 class="section-title" id="tag-stats-title" hidden>Focus by tag · this week</h2>
+            <div id="tag-stats" class="tag-stats"></div>
             <h2 class="section-title">Sessions</h2>
             <div id="history-list" class="history-list"></div>
         </main>
@@ -455,6 +480,13 @@
                     </div>
                 </div>
                 <div class="help-item">
+                    <div class="help-icon" style="--c:var(--accent-2)"><svg class="ic"><use href="#i-pen"/></svg></div>
+                    <div>
+                        <div class="help-title">Intention, interruptions and tags</div>
+                        <p>Under the ring, tap the pen line to note <b>what you are working on</b>; it stays visible through the session and is saved with it. The <b>lightning button</b> next to it logs an interruption with one tap (a phone call, a colleague, a stray thought), and History shows how many each session had. <b>Tags</b> such as work, study or admin can be set on a template or chosen when you hold a card to start; History then shows your focus minutes per tag for the week.</p>
+                    </div>
+                </div>
+                <div class="help-item">
                     <div class="help-icon" style="--c:var(--phase-longbreak)"><svg class="ic"><use href="#i-bell"/></svg></div>
                     <div>
                         <div class="help-title">Auto-start and alerts</div>
@@ -482,6 +514,14 @@
                 <div class="version-head">
                     <span class="version-name">AMS PomoTimer</span>
                     <span class="version-num" id="about-version"></span>
+                </div>
+                <div class="version-block">
+                    <div class="version-title">1.4.0 <span class="muted">· 3 September 2026</span></div>
+                    <ul>
+                        <li><b>Intention.</b> Note what you are working on when you hold a card to start, or tap the pen line under the ring during the session. It stays on the timer screen and is saved with the session in History.</li>
+                        <li><b>Interruption counter.</b> One tap on the lightning button logs a distraction. The session summary and History show the count.</li>
+                        <li><b>Tags.</b> Give templates tags (work, study, admin, or your own), or pick them on the start sheet. History shows focus minutes and Pomodoros per tag for the current week.</li>
+                    </ul>
                 </div>
                 <div class="version-block">
                     <div class="version-title">1.3.0 <span class="muted">· 3 September 2026</span></div>
@@ -563,6 +603,10 @@
                 <span class="field-label">What will you work on? <span class="muted">(optional)</span></span>
                 <input type="text" id="sheet-intention" maxlength="80" placeholder="e.g. Draft the status report">
             </label>
+            <div class="field">
+                <span class="field-label">Tags</span>
+                <div class="chip-row" id="sheet-tags"></div>
+            </div>
             <div class="sheet-actions">
                 <button class="btn btn-secondary" id="sheet-cancel">Cancel</button>
                 <button class="btn btn-primary" id="sheet-start"><svg class="ic"><use href="#i-play"/></svg> Start</button>
@@ -575,6 +619,7 @@
     <div class="modal" id="modal" hidden>
         <div class="modal-box">
             <div class="modal-text" id="modal-text"></div>
+            <input type="text" id="modal-input" maxlength="120" hidden>
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
                 <button class="btn btn-primary" id="modal-ok">OK</button>
