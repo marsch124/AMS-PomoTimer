@@ -1,6 +1,6 @@
 /* AMS PomoTimer — UI and app wiring */
 
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.0';
 
 // After an automatic advance, the "1 / 5 min more" offer for the phase that
 // just rang out stays on screen for this long.
@@ -40,9 +40,9 @@ function fmtDay(ts) {
     const today = Store.dayKey(Date.now());
     const yesterday = Store.dayKey(Date.now() - 86400000);
     const key = Store.dayKey(ts);
-    if (key === today) return 'Today';
-    if (key === yesterday) return 'Yesterday';
-    return new Date(ts).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+    if (key === today) return t('Today');
+    if (key === yesterday) return t('Yesterday');
+    return new Date(ts).toLocaleDateString(I18N.locale(), { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 function esc(s) {
@@ -71,7 +71,7 @@ function segmentsHtml(steps) {
 function templateMeta(tpl) {
     const total = Store.templateTotalSec(tpl);
     const pomos = tpl.steps.filter(s => s.type === 'focus').length;
-    return `${esc(fmtDuration(total))} · ${tpl.steps.length} phases · ${pomos} ${icon('tomato', 'ic-xs')}`;
+    return `${esc(fmtDuration(total))} · ${tpl.steps.length} ${esc(t('phases'))} · ${pomos} ${icon('tomato', 'ic-xs')}`;
 }
 
 let toastTimer = null;
@@ -188,7 +188,7 @@ const MediaCtl = (() => {
 /* Spoken announcements, if enabled. */
 function announce(text) {
     if (!Store.getSettings().voice) return;
-    Voice.say(text);
+    Voice.say(text, I18N.speechLang());
 }
 
 function vibrate(pattern) {
@@ -235,11 +235,20 @@ const Wake = (() => {
 
 /* ================= Theme ================= */
 function applyTheme() {
-    const t = Store.getSettings().theme;
-    if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+    const s = Store.getSettings();
+    const th = s.theme;
+    if (th === 'dark' || th === 'light') document.documentElement.setAttribute('data-theme', th);
     else document.documentElement.removeAttribute('data-theme');
-    const dark = t === 'dark' || (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const dark = th === 'dark' || (th !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     $('meta[name="theme-color"]').setAttribute('content', dark ? '#120f2e' : '#fff6ea');
+    document.documentElement.style.fontSize = { large: '112.5%', xlarge: '125%' }[s.textSize] || '';
+}
+
+function applyLanguage() {
+    const s = Store.getSettings();
+    const detected = (navigator.language || '').toLowerCase().startsWith('de') ? 'de' : 'en';
+    I18N.setLang(s.lang || detected);
+    I18N.apply();
 }
 
 /* ================= Screens ================= */
@@ -273,7 +282,7 @@ function renderHome() {
     const resume = $('#home-resume');
     if (snap) {
         resume.hidden = false;
-        const st = snap.status === 'paused' ? 'paused' : snap.status === 'waiting' ? 'waiting for you' : 'running';
+        const st = t(snap.status === 'paused' ? 'paused' : snap.status === 'waiting' ? 'waiting for you' : 'running');
         $('#resume-sub').innerHTML = `${icon(Store.iconFor(snap.run), 'ic-xs')} ${esc(snap.run.name)} · ${esc(snap.step.label)} · ${fmtClock(snap.remainingMs)} (${st})`;
     } else {
         resume.hidden = true;
@@ -285,20 +294,31 @@ function renderHome() {
     $('#quick-grid').innerHTML = ordered.map(t => `
         <button class="quick-card" data-id="${esc(t.id)}" style="--tpl-color:${esc(t.color || '#FF2E63')}">
             <span class="quick-icon">${icon(Store.iconFor(t))}</span>
-            <span class="quick-name">${esc(t.name || 'Untitled')}${t.id === lastId ? ' <span class="muted">· last</span>' : ''}</span>
+            <span class="quick-name">${esc(t.name || I18N.t('Untitled'))}${t.id === lastId ? ` <span class="muted">${esc(I18N.t('· last'))}</span>` : ''}</span>
             <span class="quick-meta">${templateMeta(t)}</span>
             ${segmentsHtml(t.steps)}
         </button>`).join('') +
-        `<button class="quick-card add-card" data-action="new">${icon('plus')} New template</button>`;
+        `<button class="quick-card add-card" data-action="new">${icon('plus')} ${esc(I18N.t('New template'))}</button>`;
 
     const s = Store.stats();
     $('#home-stats').innerHTML = statsHtml([
-        { value: s.today.pomodoros, label: 'Pomodoros' },
-        { value: fmtDuration(s.today.focusSec), label: 'Focus' },
-        { value: s.today.sessions, label: 'Sessions' }
+        { value: s.today.pomodoros, label: t('Pomodoros') },
+        { value: fmtDuration(s.today.focusSec), label: t('Focus') },
+        { value: s.today.sessions, label: t('Sessions') }
     ]);
     renderGoalCard(s);
     $('#home-version').textContent = 'AMS PomoTimer v' + APP_VERSION;
+    maybeBackupReminder();
+}
+
+/* About once a month, if there is something worth keeping and no export for a while. */
+function maybeBackupReminder() {
+    const DAY = 86400000;
+    if (Store.getHistory().length < 8) return;
+    if (Date.now() - Store.getLastExport() < 30 * DAY) return;
+    if (Date.now() - Store.getLastBackupNag() < 7 * DAY) return;
+    Store.setLastBackupNag();
+    setTimeout(() => toast(t('It has been a while since your last backup. Settings → Export keeps your templates and history safe.'), 5000), 800);
 }
 
 const GOAL_C = 2 * Math.PI * 26;
@@ -312,12 +332,12 @@ function renderGoalCard(s) {
     $('#goal-fg').style.strokeDashoffset = (GOAL_C * (1 - frac)).toFixed(2);
     $('#goal-num').textContent = done;
     card.classList.toggle('reached', done >= goal);
-    $('#goal-title').textContent = done >= goal ? `Daily goal reached: ${done} of ${goal}` : `${done} of ${goal} Pomodoros today`;
+    $('#goal-title').textContent = done >= goal ? t('Daily goal reached: {a} of {b}', { a: done, b: goal }) : t('{a} of {b} Pomodoros today', { a: done, b: goal });
     const ins = Store.insights(1);
     const parts = [];
-    if (ins.streak > 0) parts.push(`${icon('flame', 'ic-xs')} ${ins.streak}-day streak`);
-    if (done < goal) parts.push(`${goal - done} to go`);
-    else parts.push('Nice work');
+    if (ins.streak > 0) parts.push(`${icon('flame', 'ic-xs')} ${esc(t('{n}-day streak', { n: ins.streak }))}`);
+    if (done < goal) parts.push(esc(t('{n} to go', { n: goal - done })));
+    else parts.push(esc(t('Nice work')));
     $('#goal-sub').innerHTML = parts.join(' · ');
 }
 
@@ -325,7 +345,7 @@ function startTemplate(tpl, opts) {
     if (!tpl) return;
     if (Timer.isActive()) {
         // Starting a new one replaces the current session; ask first.
-        confirmDialog('A session is already running. Stop it and start a new one?', 'Start new').then(ok => {
+        confirmDialog(t('A session is already running. Stop it and start a new one?'), t('Start new')).then(ok => {
             if (!ok) return;
             suppressDoneScreen = true;
             Timer.stop();
@@ -344,7 +364,7 @@ let goalJustReached = false;
 function beginRun(tpl, opts) {
     Sound.unlock();
     const run = Timer.start(tpl, opts || {});
-    if (!run) { toast('This template has no phases with a duration.'); return; }
+    if (!run) { toast(t('This template has no phases with a duration.')); return; }
     lastStartedTemplate = tpl;
     syncKeepAlive();
     MediaCtl.update();
@@ -396,7 +416,7 @@ function openStartSheet(tpl) {
     };
     $('#sheet-icon').innerHTML = icon(Store.iconFor(tpl));
     $('#sheet-icon').style.background = tpl.color || '#FF2E63';
-    $('#sheet-title').textContent = tpl.name || 'Untitled';
+    $('#sheet-title').textContent = tpl.name || t('Untitled');
     $('#sheet-pomo-row').hidden = !sheet.hasFocus;
     $('#sheet-wait').checked = sheet.wait;
     $('#sheet-intention').value = '';
@@ -423,7 +443,7 @@ function renderSheet() {
     $('#sheet-phases').innerHTML = sheet.steps.map(s =>
         `<span class="mini-phase" style="--c:${phaseInfo(s.type).color}">${icon(phaseInfo(s.type).icon, 'ic-xs')} ${esc(fmtDuration(s.seconds))}</span>`).join('');
     const total = sheet.steps.reduce((a, s) => a + s.seconds, 0);
-    $('#sheet-summary').textContent = `${sheet.steps.length} phases · ${fmtDuration(total)} · ends ${fmtTime(Date.now() + total * 1000)}`;
+    $('#sheet-summary').textContent = t('{n} phases · {d} · ends {t}', { n: sheet.steps.length, d: fmtDuration(total), t: fmtTime(Date.now() + total * 1000) });
 }
 
 function closeSheet() {
@@ -480,19 +500,19 @@ function renderTimer(full) {
         screen.style.setProperty('--phase', info.color);
         $('#timer-template-name').innerHTML = `${icon(Store.iconFor(run), 'ic-sm')} ${esc(run.name)}`;
         setIcon($('#phase-badge-icon use'), info.icon);
-        $('#phase-type-label').textContent = info.label;
+        $('#phase-type-label').textContent = t(info.label);
         $('#phase-name').textContent = step.label;
-        $('#phase-count').textContent = `Phase ${snap.index + 1} of ${snap.count}`;
+        $('#phase-count').textContent = t('Phase {a} of {b}', { a: snap.index + 1, b: snap.count });
         renderIntention(run);
         const paused = status === 'paused';
         setIcon($('#pause-icon'), status === 'running' ? 'pause' : 'play');
-        $('#pause-label').textContent = status === 'running' ? 'Pause' : (status === 'waiting' ? 'Start' : 'Resume');
+        $('#pause-label').textContent = t(status === 'running' ? 'Pause' : (status === 'waiting' ? 'Start' : 'Resume'));
         $('#time-big').classList.toggle('paused', paused);
         $('#btn-prev').disabled = false;
         $('#btn-next').disabled = false;
         $('#next-up').innerHTML = snap.nextStep
-            ? `Next: <b>${esc(snap.nextStep.label)}</b> · ${fmtDuration(snap.nextStep.seconds)}`
-            : 'Last phase — then you are done.';
+            ? t('Next: <b>{label}</b> · {dur}', { label: esc(snap.nextStep.label), dur: fmtDuration(snap.nextStep.seconds) })
+            : esc(t('Last phase — then you are done.'));
         $('#phase-list').innerHTML = run.steps.map((s, i) => {
             const cls = i < snap.index ? 'done' : i === snap.index ? 'current' : '';
             return `<li class="phase-item ${cls}" data-index="${i}" style="--item-color:${phaseInfo(s.type).color}">
@@ -512,7 +532,7 @@ function renderTimer(full) {
     $('#ring-fg').style.strokeDashoffset = (RING_C * (1 - snap.phaseFraction)).toFixed(2);
     const doneMs = snap.sessionTotalMs - snap.sessionRemainingMs;
     $('#session-fill').style.width = (snap.sessionTotalMs ? doneMs / snap.sessionTotalMs * 100 : 0).toFixed(2) + '%';
-    $('#session-text').innerHTML = `<span>Session ${fmtClock(doneMs)}</span><span>${fmtClock(snap.sessionRemainingMs)} left · ends ${fmtTime(Date.now() + snap.sessionRemainingMs)}</span>`;
+    $('#session-text').innerHTML = `<span>${esc(t('Session {a}', { a: fmtClock(doneMs) }))}</span><span>${esc(t('{a} left · ends {b}', { a: fmtClock(snap.sessionRemainingMs), b: fmtTime(Date.now() + snap.sessionRemainingMs) }))}</span>`;
     document.title = status === 'running' ? `${fmtClock(snap.remainingMs)} · ${step.label} — AMS PomoTimer` : 'AMS PomoTimer';
 }
 
@@ -520,7 +540,7 @@ function renderTimer(full) {
 function renderIntention(run) {
     const el = $('#intention-text');
     if (run.intention) { el.textContent = run.intention; el.classList.remove('empty'); }
-    else { el.textContent = 'What are you working on? Tap to note it'; el.classList.add('empty'); }
+    else { el.textContent = t('What are you working on? Tap to note it'); el.classList.add('empty'); }
     const n = run.interruptions || 0;
     $('#interrupt-count').textContent = n;
     $('#btn-interrupt').classList.toggle('has-some', n > 0);
@@ -530,7 +550,7 @@ function renderIntention(run) {
 function editIntention() {
     const snap = Timer.snapshot();
     if (!snap) return;
-    promptDialog('What are you working on?', snap.run.intention || '', 'Save').then(v => {
+    promptDialog(t('What are you working on?'), snap.run.intention || '', t('Save')).then(v => {
         if (v === null) return;
         Timer.setIntention(v);
         renderIntention(Timer.snapshot().run);
@@ -575,8 +595,8 @@ function renderExtendBanner(snap) {
     banner.hidden = !show;
     if (!show) return;
     const finishedStep = lf ? run.steps[lf.index] : null;
-    const name = finishedStep ? finishedStep.label : 'Phase';
-    $('#waiting-text').textContent = status === 'waiting' ? `${name} finished.` : `${name} finished. Not quite ready?`;
+    const name = finishedStep ? finishedStep.label : t('Phase');
+    $('#waiting-text').textContent = t(status === 'waiting' ? '{name} finished.' : '{name} finished. Not quite ready?', { name });
     $('#ext-row').hidden = !lf;
     $('#btn-start-next').hidden = status !== 'waiting';
 }
@@ -595,17 +615,17 @@ Timer.on('phase', ({ run, step, reason, finished, extraSec }) => {
     if (reason === 'complete') {
         Sound.chime(isBreak ? 'break' : 'focus');
         vibrate(isBreak ? [150, 80, 150] : [250, 100, 250, 100, 250]);
-        const status = run.status === 'waiting' ? 'Tap to start' : fmtDuration(step.seconds);
-        notify(`${finished ? finished.label + ' finished' : 'Phase finished'}`, `Next: ${step.label} · ${status}`);
+        const status = run.status === 'waiting' ? t('Tap to start') : fmtDuration(step.seconds);
+        notify(finished ? t('{label} finished', { label: finished.label }) : t('Phase finished'), t('Next: {label} · {status}', { label: step.label, status }));
     } else if (reason === 'start') {
         Sound.chime(isBreak ? 'break' : 'focus');
         vibrate([120]);
     } else if (reason === 'extend') {
-        toast(`${fmtDuration(extraSec)} more for ${step.label}`);
+        toast(t('{d} more for {label}', { d: fmtDuration(extraSec), label: step.label }));
     }
-    if (reason === 'complete' && run.status === 'waiting') announce(`${finished ? finished.label : 'Phase'} finished. Tap to start ${step.label}.`);
-    else if (reason === 'complete' || reason === 'start' || reason === 'manual') announce(`${step.label}. ${voiceDuration(step.seconds)}.`);
-    else if (reason === 'extend') announce(`${voiceDuration(extraSec)} more.`);
+    if (reason === 'complete' && run.status === 'waiting') announce(t('{a} finished. Tap to start {b}.', { a: finished ? finished.label : t('Phase'), b: step.label }));
+    else if (reason === 'complete' || reason === 'start' || reason === 'manual') announce(t('{a}. {b}.', { a: step.label, b: voiceDuration(step.seconds) }));
+    else if (reason === 'extend') announce(t('{d} more.', { d: voiceDuration(extraSec) }));
     MediaCtl.update();
     if (currentScreen === 'timer') renderTimer(true);
     else if (currentScreen === 'home') renderHome();
@@ -613,8 +633,8 @@ Timer.on('phase', ({ run, step, reason, finished, extraSec }) => {
 
 function voiceDuration(sec) {
     const m = Math.round(sec / 60);
-    if (sec < 60) return `${sec} seconds`;
-    return m === 1 ? '1 minute' : `${m} minutes`;
+    if (sec < 60) return t('{n} seconds', { n: sec });
+    return m === 1 ? t('1 minute') : t('{n} minutes', { n: m });
 }
 
 Timer.on('tick', ({ secondsLeft }) => {
@@ -631,15 +651,15 @@ Timer.on('done', ({ run, entry }) => {
     if (run.completed) {
         Sound.chime('done');
         vibrate([300, 100, 300, 100, 500]);
-        notify('Session complete', `${run.name}: ${run.pomodoros} Pomodoros, ${fmtDuration(run.focusSec)} focus`);
-        announce('Session complete. Well done.');
+        notify(t('Session complete'), t('{name}: {p} Pomodoros, {f} focus', { name: run.name, p: run.pomodoros, f: fmtDuration(run.focusSec) }));
+        announce(t('Session complete. Well done.'));
     }
     // Daily goal crossed with this session?
     const goal = Store.getSettings().dailyGoal;
     const after = Store.stats().today.pomodoros;
     const before = after - (entry.pomodoros || 0);
     goalJustReached = goal > 0 && before < goal && after >= goal;
-    if (goalJustReached) { setTimeout(() => { toast(`Daily goal reached: ${after} Pomodoros`, 3000); announce('Daily goal reached.'); }, 600); }
+    if (goalJustReached) { setTimeout(() => { toast(t('Daily goal reached: {n} Pomodoros', { n: after }), 3000); announce(t('Daily goal reached.')); }, 600); }
     showDone(run);
 });
 
@@ -651,16 +671,16 @@ Timer.on('change', () => {
 function showDone(run) {
     setIcon($('#done-icon use'), run.completed ? 'party' : 'stop');
     $('.done-icon').classList.toggle('stopped', !run.completed);
-    $('.done-title').textContent = run.completed ? 'Session complete' : 'Session stopped';
+    $('.done-title').textContent = t(run.completed ? 'Session complete' : 'Session stopped');
     const mins = Math.round((run.endedAt - run.startedAt) / 60000);
     $('#done-sub').innerHTML = `${icon(Store.iconFor(run), 'ic-sm')} ${esc(run.name)} · ${fmtTime(run.startedAt)}–${fmtTime(run.endedAt)} (${mins} min)`;
     $('#done-stats').innerHTML = statsHtml([
-        { value: run.pomodoros, label: 'Pomodoros' },
-        { value: fmtDuration(run.focusSec), label: 'Focus' },
-        { value: run.interruptions || 0, label: 'Interruptions' }
+        { value: run.pomodoros, label: t('Pomodoros') },
+        { value: fmtDuration(run.focusSec), label: t('Focus') },
+        { value: run.interruptions || 0, label: t('Interruptions') }
     ]);
     const extra = [];
-    if (goalJustReached) extra.push(`<div class="done-goal">${icon('target', 'ic-sm')} Daily goal reached</div>`);
+    if (goalJustReached) extra.push(`<div class="done-goal">${icon('target', 'ic-sm')} ${esc(t('Daily goal reached'))}</div>`);
     if (run.intention) extra.push(`<div class="done-intention">“${esc(run.intention)}”</div>`);
     if (run.tags && run.tags.length) extra.push(`<div class="tag-row">${run.tags.map(t => `<span class="tag-chip">${esc(t)}</span>`).join('')}</div>`);
     $('#done-extra').innerHTML = extra.join('');
@@ -672,7 +692,7 @@ function renderTemplates() {
     const templates = Store.getTemplates();
     const el = $('#template-list');
     if (!templates.length) {
-        el.innerHTML = '<div class="empty">No templates yet. Tap the plus button to create one, or restore the built-ins in Settings.</div>';
+        el.innerHTML = `<div class="empty">${esc(t('No templates yet. Tap the plus button to create one, or restore the built-ins in Settings.'))}</div>`;
         return;
     }
     el.innerHTML = templates.map(t => `
@@ -680,12 +700,12 @@ function renderTemplates() {
             <button class="tpl-edit-area" data-edit="${esc(t.id)}">
                 <span class="tpl-icon">${icon(Store.iconFor(t))}</span>
                 <span class="tpl-body">
-                    <span class="tpl-name">${esc(t.name || 'Untitled')}</span>
+                    <span class="tpl-name">${esc(t.name || I18N.t('Untitled'))}</span>
                     <span class="tpl-meta">${templateMeta(t)}${(t.tags || []).length ? ' · ' + t.tags.map(x => `<span class="tag-chip small">${esc(x)}</span>`).join(' ') : ''}</span>
                     ${segmentsHtml(t.steps)}
                 </span>
             </button>
-            <button class="tpl-play" data-start="${esc(t.id)}" aria-label="Start ${esc(t.name)}">${icon('play')}</button>
+            <button class="tpl-play" data-start="${esc(t.id)}" aria-label="${esc(I18N.t('Start {name}', { name: t.name }))}">${icon('play')}</button>
         </div>`).join('');
 }
 
@@ -696,7 +716,7 @@ let edIsNew = false;
 function openEditor(tpl, isNew) {
     ed = JSON.parse(JSON.stringify(tpl));
     edIsNew = !!isNew;
-    $('#editor-title').textContent = isNew ? 'New template' : 'Edit template';
+    $('#editor-title').textContent = t(isNew ? 'New template' : 'Edit template');
     $('#ed-name').value = ed.name || '';
     $('#ed-auto').value = ed.autoAdvance === true ? '1' : ed.autoAdvance === false ? '0' : '';
     $('#btn-editor-delete').hidden = isNew;
@@ -717,7 +737,7 @@ function renderTagRow() {
     ed.tags.forEach(t => { if (!all.includes(t)) all.unshift(t); });
     $('#ed-tag-row').innerHTML = all.map(t =>
         `<button class="chip tag-choice ${ed.tags.includes(t) ? 'selected' : ''}" data-tag="${esc(t)}">${esc(t)}</button>`).join('') +
-        `<button class="chip tag-choice add" data-tag-new="1">${icon('plus', 'ic-xs')} custom</button>`;
+        `<button class="chip tag-choice add" data-tag-new="1">${icon('plus', 'ic-xs')} ${esc(t('custom'))}</button>`;
 }
 
 function renderIconRow() {
@@ -732,30 +752,30 @@ function renderColorRow() {
 
 function renderAddRow() {
     $('#ed-add-row').innerHTML = Object.entries(Store.PHASE_TYPES).map(([type, info]) =>
-        `<button class="chip phase-chip" data-add="${type}" style="--chip-color:${info.color}">${icon(info.icon, 'ic-sm')} ${info.label}</button>`).join('');
+        `<button class="chip phase-chip" data-add="${type}" style="--chip-color:${info.color}">${icon(info.icon, 'ic-sm')} ${esc(t(info.label))}</button>`).join('');
 }
 
 function renderSteps() {
     const el = $('#ed-steps');
     if (!ed.steps.length) {
-        el.innerHTML = '<li class="step-empty">No phases yet. Add some below.</li>';
+        el.innerHTML = `<li class="step-empty">${esc(t('No phases yet. Add some below.'))}</li>`;
     } else {
-        const typeOptions = Object.entries(Store.PHASE_TYPES).map(([t, i]) => `<option value="${t}">${i.label}</option>`).join('');
+        const typeOptions = Object.entries(Store.PHASE_TYPES).map(([ty, i]) => `<option value="${ty}">${esc(t(i.label))}</option>`).join('');
         el.innerHTML = ed.steps.map((s, i) => {
             const m = Math.floor(s.seconds / 60), sec = s.seconds % 60;
             return `<li class="step-row" data-index="${i}" style="--item-color:${phaseInfo(s.type).color}">
                 <span class="step-idx">${i + 1}</span>
-                <input class="step-label" type="text" maxlength="30" value="${esc(s.label)}" placeholder="${esc(phaseInfo(s.type).label)}" data-field="label">
+                <input class="step-label" type="text" maxlength="30" value="${esc(s.label)}" placeholder="${esc(t(phaseInfo(s.type).label))}" data-field="label">
                 <select class="step-type" data-field="type">${typeOptions}</select>
                 <span class="step-dur">
                     <input type="number" inputmode="numeric" min="0" max="600" value="${m}" data-field="min"><span>min</span>
                     <input type="number" inputmode="numeric" min="0" max="59" value="${sec}" data-field="sec"><span>sec</span>
                 </span>
                 <span class="step-actions">
-                    <button data-op="up" ${i === 0 ? 'disabled' : ''} aria-label="Move up">${icon('up', 'ic-sm')}</button>
-                    <button data-op="down" ${i === ed.steps.length - 1 ? 'disabled' : ''} aria-label="Move down">${icon('down', 'ic-sm')}</button>
-                    <button data-op="dup" aria-label="Duplicate">${icon('copy', 'ic-sm')}</button>
-                    <button data-op="del" class="del" aria-label="Remove">${icon('trash', 'ic-sm')}</button>
+                    <button data-op="up" ${i === 0 ? 'disabled' : ''} aria-label="${esc(t('Move up'))}">${icon('up', 'ic-sm')}</button>
+                    <button data-op="down" ${i === ed.steps.length - 1 ? 'disabled' : ''} aria-label="${esc(t('Move down'))}">${icon('down', 'ic-sm')}</button>
+                    <button data-op="dup" aria-label="${esc(t('Duplicate'))}">${icon('copy', 'ic-sm')}</button>
+                    <button data-op="del" class="del" aria-label="${esc(t('Remove'))}">${icon('trash', 'ic-sm')}</button>
                 </span>
             </li>`;
         }).join('');
@@ -769,15 +789,15 @@ function updateEdTotal() {
 }
 
 function saveEditor() {
-    ed.name = $('#ed-name').value.trim() || 'Untitled';
+    ed.name = $('#ed-name').value.trim() || t('Untitled');
     const auto = $('#ed-auto').value;
     ed.autoAdvance = auto === '1' ? true : auto === '0' ? false : null;
-    ed.steps = ed.steps.map(s => ({ ...s, label: (s.label || '').trim() || phaseInfo(s.type).label, seconds: Math.max(0, Math.round(s.seconds)) }));
-    if (!ed.steps.some(s => s.seconds > 0)) { toast('Add at least one phase with a duration.'); return; }
+    ed.steps = ed.steps.map(s => ({ ...s, label: (s.label || '').trim() || t(phaseInfo(s.type).label), seconds: Math.max(0, Math.round(s.seconds)) }));
+    if (!ed.steps.some(s => s.seconds > 0)) { toast(t('Add at least one phase with a duration.')); return; }
     ed.tags = Store.cleanTags(ed.tags);
     ed.builtin = false;
     Store.saveTemplate(ed);
-    toast(edIsNew ? 'Template created' : 'Template saved');
+    toast(t(edIsNew ? 'Template created' : 'Template saved'));
     ed = null;
     showScreen('templates');
 }
@@ -786,15 +806,15 @@ function saveEditor() {
 function renderHistory() {
     const s = Store.stats();
     $('#history-stats').innerHTML = statsHtml([
-        { value: s.today.pomodoros, label: 'Today' },
-        { value: s.week.pomodoros, label: 'This week' },
-        { value: fmtDuration(s.all.focusSec), label: 'All-time focus' }
+        { value: s.today.pomodoros, label: t('Today') },
+        { value: s.week.pomodoros, label: t('This week') },
+        { value: fmtDuration(s.all.focusSec), label: t('All-time focus') }
     ]);
     renderTagStats(s);
     renderInsights();
     const list = Store.getHistory();
     const el = $('#history-list');
-    if (!list.length) { el.innerHTML = '<div class="empty">No sessions yet. Finish a session and it shows up here.</div>'; return; }
+    if (!list.length) { el.innerHTML = `<div class="empty">${esc(t('No sessions yet. Finish a session and it shows up here.'))}</div>`; return; }
     let html = '', lastDay = null;
     list.forEach(h => {
         const day = fmtDay(h.endedAt);
@@ -804,9 +824,9 @@ function renderHistory() {
         html += `<div class="history-row ${h.completed ? '' : 'stopped'}" data-id="${esc(h.id)}" style="--tpl-color:${esc(h.color || '#FF2E63')}">
             <span class="h-icon">${icon(Store.iconFor(h))}</span>
             <span class="h-body">
-                <div class="h-name">${esc(h.name)}${h.completed ? '' : ' <span class="muted">· stopped</span>'}</div>
+                <div class="h-name">${esc(h.name)}${h.completed ? '' : ` <span class="muted">${esc(t('· stopped'))}</span>`}</div>
                 ${h.intention ? `<div class="h-intention">“${esc(h.intention)}”</div>` : ''}
-                <div class="h-meta">${fmtTime(h.startedAt)}–${fmtTime(h.endedAt)} · ${h.pomodoros} ${icon('tomato', 'ic-xs')} · ${h.phasesDone}/${h.phasesTotal} phases${intr}${tags ? ' · ' + tags : ''}</div>
+                <div class="h-meta">${fmtTime(h.startedAt)}–${fmtTime(h.endedAt)} · ${h.pomodoros} ${icon('tomato', 'ic-xs')} · ${h.phasesDone}/${h.phasesTotal} ${esc(t('phases'))}${intr}${tags ? ' · ' + tags : ''}</div>
             </span>
             <span class="h-focus">${fmtDuration(h.focusSec)}</span>
             <button class="h-del" data-del="${esc(h.id)}" aria-label="Delete">${icon('close', 'ic-sm')}</button>
@@ -823,13 +843,13 @@ function renderInsights() {
     wrap.hidden = !any;
     if (!any) return;
     $('#insight-stats').innerHTML = statsHtml([
-        { value: ins.streak, label: ins.streak === 1 ? 'Day streak' : 'Day streak' },
-        { value: ins.longest, label: 'Longest streak' },
-        { value: ins.bestHour >= 0 ? `${pad(ins.bestHour)}–${pad((ins.bestHour + 1) % 24)}` : '–', label: 'Best hour' }
+        { value: ins.streak, label: t('Day streak') },
+        { value: ins.longest, label: t('Longest streak') },
+        { value: ins.bestHour >= 0 ? `${pad(ins.bestHour)}–${pad((ins.bestHour + 1) % 24)}` : '–', label: t('Best hour') }
     ]);
     $('#chart-days').innerHTML = dayBarChart(ins.series);
     $('#chart-hours').innerHTML = hourBarChart(ins.byHour, ins.bestHour);
-    $('#chart-tip').textContent = 'Tap a bar for details.';
+    $('#chart-tip').textContent = t('Tap a bar for details.');
 }
 
 /* 28 days of focus minutes. Bars are thin, rounded at the data end, sit on a
@@ -841,7 +861,7 @@ function dayBarChart(series) {
     const max = Math.max(1, ...series.map(d => d.focusSec));
     const maxIdx = series.reduce((m, d, i) => d.focusSec > series[m].focusSec ? i : m, 0);
     const y = v => top + (H - top - bottom) * (1 - v / max);
-    let svg = `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="Focus minutes per day, last 28 days">`;
+    let svg = `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="${esc(t('Focus minutes per day, last 28 days'))}">`;
     // three light guide lines
     [0.5, 1].forEach(f => { svg += `<line class="grid" x1="0" x2="${W}" y1="${y(max * f).toFixed(1)}" y2="${y(max * f).toFixed(1)}"/>`; });
     series.forEach((d, i) => {
@@ -862,7 +882,7 @@ function dayBarChart(series) {
     series.forEach((d, i) => {
         if (i % 7 === 0) {
             const dt = new Date(d.ts);
-            svg += `<text class="lbl" x="${(i * slot + 1.5).toFixed(1)}" y="${H - 6}">${dt.getDate()} ${dt.toLocaleDateString(undefined, { month: 'short' })}</text>`;
+            svg += `<text class="lbl" x="${(i * slot + 1.5).toFixed(1)}" y="${H - 6}">${dt.getDate()} ${esc(dt.toLocaleDateString(I18N.locale(), { month: 'short' }))}</text>`;
         }
     });
     svg += '</svg>';
@@ -873,7 +893,7 @@ function dayBarChart(series) {
 function hourBarChart(byHour, best) {
     const W = 336, H = 80, top = 10, bottom = 18, slot = W / 24, bw = slot - 3;
     const max = Math.max(1, ...byHour);
-    let svg = `<svg viewBox="0 0 ${W} ${H}" class="chart hours" role="img" aria-label="Focus minutes by hour of day">`;
+    let svg = `<svg viewBox="0 0 ${W} ${H}" class="chart hours" role="img" aria-label="${esc(t('Focus minutes by hour of day'))}">`;
     byHour.forEach((v, i) => {
         const h = v > 0 ? Math.max(3, (H - top - bottom) * (v / max)) : 0;
         const x = i * slot + 1.5;
@@ -897,11 +917,11 @@ function chartTap(e) {
     g.classList.add('sel');
     if (g.dataset.i !== undefined) {
         const d = ins.series[+g.dataset.i];
-        const dt = new Date(d.ts).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
-        $('#chart-tip').innerHTML = `<b>${esc(dt)}</b> · ${esc(fmtDuration(d.focusSec))} · ${d.pomodoros} ${icon('tomato', 'ic-xs')} · ${d.sessions} session${d.sessions === 1 ? '' : 's'}`;
+        const dt = new Date(d.ts).toLocaleDateString(I18N.locale(), { weekday: 'short', day: 'numeric', month: 'short' });
+        $('#chart-tip').innerHTML = `<b>${esc(dt)}</b> · ${esc(fmtDuration(d.focusSec))} · ${d.pomodoros} ${icon('tomato', 'ic-xs')} · ${esc(t(d.sessions === 1 ? '{n} session' : '{n} sessions', { n: d.sessions }))}`;
     } else if (g.dataset.h !== undefined) {
         const h = +g.dataset.h;
-        $('#chart-tip').innerHTML = `<b>${pad(h)}:00–${pad((h + 1) % 24)}:00</b> · ${esc(fmtDuration(ins.byHour[h]))} of focus, all time`;
+        $('#chart-tip').innerHTML = `<b>${pad(h)}:00–${pad((h + 1) % 24)}:00</b> · ${esc(t('{d} of focus, all time', { d: fmtDuration(ins.byHour[h]) }))}`;
     }
 }
 
@@ -930,6 +950,9 @@ function renderSettings() {
     $('#set-vibrate').checked = s.vibrate;
     $('#set-notify').checked = s.notify && ('Notification' in window) && Notification.permission === 'granted';
     $('#set-theme').value = s.theme;
+    $('#set-lang').value = I18N.getLang();
+    $('#set-textsize').value = s.textSize || 'normal';
+    $('#btn-share-backup').hidden = !(navigator.share && navigator.canShare);
     $('#set-goal').value = s.dailyGoal;
     $('#set-bgaudio').checked = s.bgAudio;
     $('#set-voice').checked = s.voice && Voice.supported();
@@ -940,16 +963,72 @@ function renderSettings() {
     $('#set-notify').disabled = !('Notification' in window);
 }
 
-function exportData() {
+function backupFile() {
     const data = Store.exportData();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+    return new File([JSON.stringify(data, null, 2)], 'ams-pomotimer-' + Store.dayKey(Date.now()) + '.json', { type: 'application/json' });
+}
+
+function exportData() {
+    const file = backupFile();
+    const url = URL.createObjectURL(file);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'ams-pomotimer-' + Store.dayKey(Date.now()) + '.json';
+    a.download = file.name;
     document.body.appendChild(a);
     a.click();
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+    Store.setLastExport();
+    toast(t('Backup exported'));
+}
+
+/* Hand the backup to the phone's share sheet (Files, Mail, AirDrop, ...). */
+async function shareBackup() {
+    const file = backupFile();
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({ files: [file], title: 'AMS PomoTimer backup' });
+            Store.setLastExport();
+        } catch (e) { /* cancelled */ }
+        return;
+    }
+    toast(t('Sharing is not available here; the file was downloaded instead.'), 3000);
+    exportData();
+}
+
+/* ================= Sharing templates ================= */
+function shareLink(tpl) {
+    const base = location.origin + location.pathname;
+    return base + '?t=' + Store.encodeShare(tpl);
+}
+
+function openShare(tpl) {
+    if (!tpl) return;
+    const link = shareLink(tpl);
+    $('#share-title').textContent = t('Share template') + ': ' + (tpl.name || t('Untitled'));
+    try {
+        $('#share-qr').innerHTML = QR.toSvg(link, { level: 'L', dark: '#120f2e', light: '#ffffff' });
+    } catch (e) {
+        $('#share-qr').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+    }
+    $('#share-link').textContent = link;
+    $('#btn-share-native').hidden = !navigator.share;
+    $('#share-modal').hidden = false;
+}
+
+function importFromLink(text) {
+    let payload = String(text || '').trim();
+    const m = payload.match(/[?&]t=([A-Za-z0-9_-]+)/);
+    if (m) payload = m[1];
+    let tpl;
+    try { tpl = Store.decodeShare(payload); }
+    catch (e) { toast(t('Not a PomoTimer template link'), 3000); return; }
+    showScreen('templates');
+    confirmDialog(t('Add template “{name}”?', { name: tpl.name }), t('Add')).then(ok => {
+        if (!ok) return;
+        Store.saveTemplate(tpl);
+        toast(t('Template “{name}” added', { name: tpl.name }));
+        renderTemplates();
+    });
 }
 
 /* ================= Wiring ================= */
@@ -1000,7 +1079,7 @@ function bind() {
     });
     $('#btn-quick-custom').addEventListener('click', () => {
         const m = parseInt($('#quick-custom-min').value, 10);
-        if (!m || m < 1) { toast('Enter a number of minutes.'); return; }
+        if (!m || m < 1) { toast(t('Enter a number of minutes.')); return; }
         $('#quick-custom-min').value = '';
         startTemplate(Store.quickTemplate(Math.min(600, m)));
     });
@@ -1009,7 +1088,7 @@ function bind() {
     // Timer
     $('#btn-timer-back').addEventListener('click', () => showScreen('home'));
     $('#btn-timer-stop').addEventListener('click', async () => {
-        if (await confirmDialog('Stop this session? Progress so far is kept in History.', 'Stop')) Timer.stop();
+        if (await confirmDialog(t('Stop this session? Progress so far is kept in History.'), t('Stop'))) Timer.stop();
     });
     $('#btn-pause').addEventListener('click', () => {
         const snap = Timer.snapshot();
@@ -1023,7 +1102,7 @@ function bind() {
         const n = Timer.logInterruption();
         vibrate([20]);
         renderIntention(Timer.snapshot().run);
-        toast(n === 1 ? '1 interruption noted' : `${n} interruptions noted`, 1200);
+        toast(n === 1 ? t('1 interruption noted') : t('{n} interruptions noted', { n }), 1200);
     });
     $('#btn-ext-1').addEventListener('click', () => { if (Timer.extendFinished(60)) renderTimer(true); });
     $('#btn-ext-5').addEventListener('click', () => { if (Timer.extendFinished(300)) renderTimer(true); });
@@ -1071,7 +1150,7 @@ function bind() {
     $('#ed-tag-row').addEventListener('click', async e => {
         const nb = e.target.closest('[data-tag-new]');
         if (nb) {
-            const v = await promptDialog('New tag', '', 'Add');
+            const v = await promptDialog(t('New tag'), '', t('Add'));
             if (v) { ed.tags = Store.cleanTags([...ed.tags, v]); renderTagRow(); }
             return;
         }
@@ -1097,7 +1176,7 @@ function bind() {
             if (pause > 0 && i < count - 1) ed.steps.push(Store.step('pause', pause));
         }
         renderSteps();
-        toast(`Added ${count} Pomodoros`);
+        toast(t('Added {n} Pomodoros', { n: count }));
     });
     $('#ed-steps').addEventListener('input', e => {
         const row = e.target.closest('.step-row');
@@ -1137,14 +1216,14 @@ function bind() {
         ed.name = $('#ed-name').value.trim() || ed.name;
         const copy = Store.duplicateTemplate(ed);
         Store.saveTemplate(copy);
-        toast('Duplicated');
+        toast(t('Duplicated'));
         openEditor(copy, false);
     });
     $('#btn-editor-delete').addEventListener('click', async () => {
-        if (await confirmDialog(`Delete “${ed.name || 'Untitled'}”?`, 'Delete')) {
+        if (await confirmDialog(t('Delete “{name}”?', { name: ed.name || t('Untitled') }), t('Delete'))) {
             Store.deleteTemplate(ed.id);
             ed = null;
-            toast('Template deleted');
+            toast(t('Template deleted'));
             showScreen('templates');
         }
     });
@@ -1157,7 +1236,7 @@ function bind() {
         renderHistory();
     });
     $('#btn-clear-history').addEventListener('click', async () => {
-        if (await confirmDialog('Clear the whole history? This cannot be undone.', 'Clear')) { Store.clearHistory(); renderHistory(); }
+        if (await confirmDialog(t('Clear the whole history? This cannot be undone.'), t('Clear'))) { Store.clearHistory(); renderHistory(); }
     });
 
     // Settings
@@ -1172,22 +1251,48 @@ function bind() {
         const v = Math.max(0, Math.min(30, parseInt(e.target.value, 10) || 0));
         e.target.value = v;
         Store.saveSettings({ dailyGoal: v });
-        toast(v ? `Daily goal: ${v} Pomodoros` : 'Daily goal off');
+        toast(v ? t('Daily goal: {n} Pomodoros', { n: v }) : t('Daily goal off'));
     });
     $('#chart-days').addEventListener('click', chartTap);
     $('#chart-hours').addEventListener('click', chartTap);
-    bindSwitch('#set-voice', 'voice', on => { if (on) Voice.say('Voice announcements on.'); });
+    bindSwitch('#set-voice', 'voice', on => { if (on) Voice.say(t('Voice announcements on.'), I18N.speechLang()); });
     $('#set-notify').addEventListener('change', async e => {
         if (!e.target.checked) { Store.saveSettings({ notify: false }); return; }
-        if (!('Notification' in window)) { e.target.checked = false; toast('Notifications are not supported here.'); return; }
+        if (!('Notification' in window)) { e.target.checked = false; toast(t('Notifications are not supported here.')); return; }
         let perm = Notification.permission;
         if (perm !== 'granted') perm = await Notification.requestPermission();
-        if (perm === 'granted') { Store.saveSettings({ notify: true }); toast('Notifications on'); }
-        else { e.target.checked = false; Store.saveSettings({ notify: false }); toast('Permission not granted. On iOS, install the app to the Home Screen first.', 3500); }
+        if (perm === 'granted') { Store.saveSettings({ notify: true }); toast(t('Notifications on')); }
+        else { e.target.checked = false; Store.saveSettings({ notify: false }); toast(t('Permission not granted. On iOS, install the app to the Home Screen first.'), 3500); }
     });
     $('#btn-test-alert').addEventListener('click', () => { Sound.chime('focus'); vibrate([250, 100, 250]); });
     $('#set-theme').addEventListener('change', e => { Store.saveSettings({ theme: e.target.value }); applyTheme(); });
+    $('#set-lang').addEventListener('change', e => {
+        Store.saveSettings({ lang: e.target.value });
+        applyLanguage();
+        showScreen('settings');
+        MediaCtl.update();
+    });
+    $('#set-textsize').addEventListener('change', e => { Store.saveSettings({ textSize: e.target.value }); applyTheme(); });
     $('#btn-export').addEventListener('click', exportData);
+    $('#btn-share-backup').addEventListener('click', shareBackup);
+    $('#btn-paste-import').addEventListener('click', async () => {
+        const v = await promptDialog(t('Paste a PomoTimer template link or code'), '', t('Import'));
+        if (v) importFromLink(v);
+    });
+    // Share sheet (template QR + link)
+    $('#btn-editor-share').addEventListener('click', () => openShare(ed));
+    $('#btn-share-close').addEventListener('click', () => { $('#share-modal').hidden = true; });
+    $('#share-modal').addEventListener('click', e => { if (e.target === $('#share-modal')) $('#share-modal').hidden = true; });
+    $('#btn-share-copy').addEventListener('click', async () => {
+        const link = $('#share-link').textContent;
+        try { await navigator.clipboard.writeText(link); toast(t('Link copied')); }
+        catch (e) { promptDialog(t('Copy link'), link, t('Close')); }
+    });
+    $('#btn-share-native').addEventListener('click', async () => {
+        const link = $('#share-link').textContent;
+        try { await navigator.share({ title: 'AMS PomoTimer', text: $('#share-title').textContent, url: link }); }
+        catch (e) { /* cancelled */ }
+    });
     $('#btn-import').addEventListener('click', () => $('#import-file').click());
     $('#import-file').addEventListener('change', e => {
         const file = e.target.files && e.target.files[0];
@@ -1197,16 +1302,17 @@ function bind() {
             try {
                 const res = Store.importData(JSON.parse(reader.result));
                 applyTheme();
+                applyLanguage();
                 renderSettings();
-                toast(`Imported ${res.templates} templates, ${res.history} sessions`);
-            } catch (err) { toast('Import failed: ' + err.message, 3500); }
+                toast(t('Imported {a} templates, {b} sessions', { a: res.templates, b: res.history }));
+            } catch (err) { toast(t('Import failed: ') + err.message, 3500); }
             e.target.value = '';
         };
         reader.readAsText(file);
     });
     $('#btn-restore-builtin').addEventListener('click', () => {
         const n = Store.restoreBuiltins();
-        toast(n ? `Restored ${n} built-in templates` : 'All built-ins are already there');
+        toast(n ? t('Restored {n} built-in templates', { n }) : t('All built-ins are already there'));
     });
 
     // Keep the countdown honest when the phone wakes up
@@ -1218,20 +1324,40 @@ function bind() {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
 }
 
+/* Launch links, usable from Shortcuts, automations or bookmarks:
+     ?action=start&template=<id or name>   start a template
+     ?action=quick&min=25                  one single Pomodoro
+     ?action=last                          the template used last
+     ?action=templates                     open the Templates tab
+     ?t=<code>                             offer a shared template */
 function handleLaunchAction() {
-    const action = new URLSearchParams(location.search).get('action');
-    if (!action) return false;
+    const params = new URLSearchParams(location.search);
+    const action = params.get('action');
+    const shared = params.get('t');
+    if (!action && !shared) return false;
     history.replaceState(null, '', location.pathname);
+    if (shared) { importFromLink(shared); return true; }
     if (action === 'templates') { showScreen('templates'); return true; }
     if (action === 'last') {
         const tpl = Store.getTemplate(Store.getLastTemplateId()) || Store.getTemplates()[0];
         if (tpl && !Timer.isActive()) { beginRun(tpl); return true; }
+    }
+    if (action === 'start') {
+        const key = params.get('template') || '';
+        const tpl = Store.getTemplate(key) || Store.findTemplateByName(key);
+        if (!tpl) { setTimeout(() => toast(t('Template not found')), 300); return false; }
+        if (!Timer.isActive()) { beginRun(tpl); return true; }
+    }
+    if (action === 'quick') {
+        const m = parseInt(params.get('min'), 10);
+        if (m > 0 && !Timer.isActive()) { beginRun(Store.quickTemplate(Math.min(600, m))); return true; }
     }
     return false;
 }
 
 function init() {
     applyTheme();
+    applyLanguage();
     bind();
     MediaCtl.bind();
     startUiLoop();

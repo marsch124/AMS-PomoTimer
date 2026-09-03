@@ -20,7 +20,11 @@ A mobile-first Pomodoro timer with **phases**, not just a 25-minute countdown. A
 - **Keep screen awake** — Uses the Wake Lock API while a session is running.
 - **History** — Every session is logged with Pomodoros completed and focus minutes. Today, this week, and all-time stats. Charts for the last four weeks and by hour of day; current and longest streak.
 - **Daily goal** — Pomodoros per day; the Timer tab shows a ring filling up, what's left, and your streak.
-- **Export / import** — Templates, history and settings as one JSON file.
+- **Export / import** — Templates, history and settings as one JSON file; share the backup straight to Files, Mail or AirDrop; a gentle reminder when the last backup is old.
+- **Share templates** — As a QR code (scan with the camera) or a link; paste a link or code under Settings to import.
+- **German** — Full German translation, switchable in Settings; voice announcements follow.
+- **Larger text and wide screens** — Two larger text sizes; landscape and iPad layouts put the ring beside the controls.
+- **Shortcut links** — `?action=start&template=Name`, `?action=quick&min=25`, `?action=last` for Shortcuts, automations and bookmarks.
 - **Dark / light** — Follows the system, or pick one. Deep indigo with hot pink, sunshine, cyan, lime, turquoise and violet; warm cream in light mode.
 - **Hand-drawn icons** — Every icon in the app, including the app icon, is drawn by hand as a few SVG strokes. No emoji, no icon font, no stock set.
 - **How this works** — Settings has a built-in explanation of sessions, templates, controls, alerts and background behaviour, plus a full version description.
@@ -64,6 +68,8 @@ AMS-PomoTimer/
 │   ├── store.js      # Templates, settings, history (localStorage)
 │   ├── timer.js      # Timer engine (timestamp based, survives reloads)
 │   ├── audio.js      # Synthesised chimes, keep-alive track, voice
+│   ├── i18n.js       # Languages (English in the markup, German dictionary)
+│   ├── qr.js         # QR code encoder for template sharing
 │   └── app.js        # Screens and UI wiring
 └── icons/
     ├── icon.svg      # Hand-drawn app icon (source)
@@ -83,6 +89,10 @@ Then open http://localhost:7794.
 
 
 ## Version history
+
+**v1.6.0 (2026-09-03)**
+- Share templates as QR code or link (own QR encoder, no dependencies); paste-to-import; share backup via the system share sheet; monthly backup reminder.
+- German language, larger text sizes, landscape / iPad layout, shortcut links.
 
 **v1.5.0 (2026-09-03)**
 - Daily goal ring with streak on the Timer tab; celebration on reaching it.

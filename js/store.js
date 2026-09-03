@@ -7,8 +7,15 @@ const Store = (() => {
         settings: 'pomo.settings',
         history: 'pomo.history',
         run: 'pomo.run',
-        lastTemplate: 'pomo.lastTemplate'
+        lastTemplate: 'pomo.lastTemplate',
+        lastExport: 'pomo.lastExport',
+        lastBackupNag: 'pomo.lastBackupNag'
     };
+
+    /* Share links carry a template in a compact form: type letters instead of
+       names, labels only when they differ from the default. */
+    const TYPE_CODE = { startup: 's', prep: 'p', focus: 'f', pause: 'b', longbreak: 'l', cooldown: 'c' };
+    const CODE_TYPE = Object.fromEntries(Object.entries(TYPE_CODE).map(([k, v]) => [v, k]));
 
     /* The phase vocabulary. Order here is the order of the "Add phase" chips.
        Each phase type has a colour and a hand-drawn symbol (see the sprite in
@@ -67,7 +74,9 @@ const Store = (() => {
         theme: 'system',
         bgAudio: true,   // keep an inaudible track playing so alerts work when locked
         voice: false,    // spoken announcements at each phase change
-        dailyGoal: 4     // Pomodoros per day; 0 switches the goal off
+        dailyGoal: 4,    // Pomodoros per day; 0 switches the goal off
+        lang: '',        // '' = follow the phone's language
+        textSize: 'normal'
     };
 
     function uid(prefix) {
@@ -75,8 +84,75 @@ const Store = (() => {
     }
 
     function step(type, minutes, label) {
-        return { id: uid('s'), type, label: label || PHASE_TYPES[type].label, seconds: Math.round(minutes * 60) };
+        const def = (typeof I18N !== 'undefined') ? I18N.t(PHASE_TYPES[type].label) : PHASE_TYPES[type].label;
+        return { id: uid('s'), type, label: label || def, seconds: Math.round(minutes * 60) };
     }
+
+    function b64url(str) {
+        const bytes = new TextEncoder().encode(str);
+        let bin = '';
+        bytes.forEach(b => { bin += String.fromCharCode(b); });
+        return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+    function unb64url(s) {
+        s = String(s || '').replace(/-/g, '+').replace(/_/g, '/');
+        while (s.length % 4) s += '=';
+        const bin = atob(s);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return new TextDecoder().decode(bytes);
+    }
+
+    function encodeShare(tpl) {
+        const obj = {
+            n: String(tpl.name || '').slice(0, 40),
+            i: iconFor(tpl),
+            c: tpl.color || '#FF2E63',
+            s: (tpl.steps || []).map(s => {
+                const def = PHASE_TYPES[s.type] ? PHASE_TYPES[s.type].label : '';
+                const arr = [TYPE_CODE[s.type] || 'f', s.seconds];
+                if (s.label && s.label !== def && (typeof I18N === 'undefined' || s.label !== I18N.t(def))) arr.push(String(s.label).slice(0, 30));
+                return arr;
+            })
+        };
+        if (tpl.autoAdvance === true) obj.a = 1;
+        if (tpl.autoAdvance === false) obj.a = 0;
+        const tags = cleanTags(tpl.tags);
+        if (tags.length) obj.g = tags;
+        return b64url(JSON.stringify(obj));
+    }
+
+    function decodeShare(payload) {
+        let obj;
+        try { obj = JSON.parse(unb64url(payload)); } catch (e) { throw new Error('Not a PomoTimer template link'); }
+        if (!obj || !Array.isArray(obj.s) || !obj.s.length) throw new Error('Not a PomoTimer template link');
+        const tpl = {
+            id: uid('t'),
+            name: String(obj.n || 'Shared template').slice(0, 40),
+            icon: ICONS.includes(obj.i) ? obj.i : 'tomato',
+            color: /^#[0-9a-fA-F]{6}$/.test(obj.c || '') ? obj.c : '#FF2E63',
+            autoAdvance: obj.a === 1 ? true : obj.a === 0 ? false : null,
+            tags: cleanTags(obj.g),
+            steps: obj.s.map(a => {
+                const type = CODE_TYPE[a[0]] || 'focus';
+                const sec = Math.max(0, Math.min(36000, Math.round(Number(a[1]) || 0)));
+                return step(type, sec / 60, a[2] ? String(a[2]).slice(0, 30) : null);
+            }).filter(s => s.seconds > 0)
+        };
+        if (!tpl.steps.length) throw new Error('Not a PomoTimer template link');
+        return tpl;
+    }
+
+    function findTemplateByName(name) {
+        const key = String(name || '').trim().toLowerCase();
+        if (!key) return null;
+        return getTemplates().find(t => (t.name || '').trim().toLowerCase() === key) || null;
+    }
+
+    function getLastExport() { return read(KEYS.lastExport, 0); }
+    function setLastExport() { write(KEYS.lastExport, Date.now()); }
+    function getLastBackupNag() { return read(KEYS.lastBackupNag, 0); }
+    function setLastBackupNag() { write(KEYS.lastBackupNag, Date.now()); }
 
     function iconFor(obj) {
         if (!obj) return 'tomato';
@@ -196,7 +272,7 @@ const Store = (() => {
         const copy = JSON.parse(JSON.stringify(tpl));
         copy.id = uid('t');
         copy.builtin = false;
-        copy.name = (tpl.name || 'Template') + ' copy';
+        copy.name = (tpl.name || 'Template') + ((typeof I18N !== 'undefined') ? I18N.t(' copy') : ' copy');
         copy.steps = copy.steps.map(s => ({ ...s, id: uid('s') }));
         delete copy.createdAt;
         return copy;
@@ -216,7 +292,7 @@ const Store = (() => {
     /* A throw-away template for the quick timer chips: a single focus phase. */
     function quickTemplate(minutes) {
         return {
-            id: 'quick-' + minutes, name: minutes + ' min Pomodoro', icon: 'clock', color: '#FF2E63', autoAdvance: null, quick: true,
+            id: 'quick-' + minutes, name: (typeof I18N !== 'undefined') ? I18N.t('{n} min Pomodoro', { n: minutes }) : minutes + ' min Pomodoro', icon: 'clock', color: '#FF2E63', autoAdvance: null, quick: true,
             steps: [step('focus', minutes)]
         };
     }
@@ -417,6 +493,7 @@ const Store = (() => {
         getSettings, saveSettings,
         getHistory, addHistory, deleteHistory, clearHistory, stats, insights, dayKey,
         getRun, saveRun, getLastTemplateId, setLastTemplateId,
-        exportData, importData
+        exportData, importData, encodeShare, decodeShare, findTemplateByName,
+        getLastExport, setLastExport, getLastBackupNag, setLastBackupNag
     };
 })();

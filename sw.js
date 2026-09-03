@@ -1,13 +1,15 @@
 /* AMS PomoTimer — service worker (offline cache)
    Paths are relative to this file so the app works from any folder or repo. */
 
-const CACHE_NAME = 'ams-pomotimer-v6';
+const CACHE_NAME = 'ams-pomotimer-v7';
 
 const urlsToCache = [
     './',
     './index.html',
     './manifest.json',
     './css/style.css',
+    './js/i18n.js',
+    './js/qr.js',
     './js/store.js',
     './js/timer.js',
     './js/audio.js',
