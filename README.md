@@ -18,7 +18,8 @@ A mobile-first Pomodoro timer with **phases**, not just a 25-minute countdown. A
 - **Hold to adjust** — Hold a quick-start card to change the number of Pomodoros, wait-for-tap, tags, and note what you intend to work on before starting.
 - **Intention, interruptions, tags** — The intention stays on the timer screen and in History; one tap logs an interruption; tags give you focus minutes per topic each week.
 - **Keep screen awake** — Uses the Wake Lock API while a session is running.
-- **History** — Every session is logged with Pomodoros completed and focus minutes. Today, this week, and all-time stats.
+- **History** — Every session is logged with Pomodoros completed and focus minutes. Today, this week, and all-time stats. Charts for the last four weeks and by hour of day; current and longest streak.
+- **Daily goal** — Pomodoros per day; the Timer tab shows a ring filling up, what's left, and your streak.
 - **Export / import** — Templates, history and settings as one JSON file.
 - **Dark / light** — Follows the system, or pick one. Deep indigo with hot pink, sunshine, cyan, lime, turquoise and violet; warm cream in light mode.
 - **Hand-drawn icons** — Every icon in the app, including the app icon, is drawn by hand as a few SVG strokes. No emoji, no icon font, no stock set.
@@ -82,6 +83,10 @@ Then open http://localhost:7794.
 
 
 ## Version history
+
+**v1.5.0 (2026-09-03)**
+- Daily goal ring with streak on the Timer tab; celebration on reaching it.
+- History charts: focus per day (4 weeks), focus by hour, streaks, best hour.
 
 **v1.4.0 (2026-09-03)**
 - Intention shown under the ring (tap to edit) and saved with the session.

@@ -1,6 +1,6 @@
 /* AMS PomoTimer — UI and app wiring */
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 
 // After an automatic advance, the "1 / 5 min more" offer for the phase that
 // just rang out stays on screen for this long.
@@ -297,7 +297,28 @@ function renderHome() {
         { value: fmtDuration(s.today.focusSec), label: 'Focus' },
         { value: s.today.sessions, label: 'Sessions' }
     ]);
+    renderGoalCard(s);
     $('#home-version').textContent = 'AMS PomoTimer v' + APP_VERSION;
+}
+
+const GOAL_C = 2 * Math.PI * 26;
+function renderGoalCard(s) {
+    const goal = Store.getSettings().dailyGoal;
+    const card = $('#goal-card');
+    if (!goal) { card.hidden = true; return; }
+    card.hidden = false;
+    const done = s.today.pomodoros;
+    const frac = Math.min(1, done / goal);
+    $('#goal-fg').style.strokeDashoffset = (GOAL_C * (1 - frac)).toFixed(2);
+    $('#goal-num').textContent = done;
+    card.classList.toggle('reached', done >= goal);
+    $('#goal-title').textContent = done >= goal ? `Daily goal reached: ${done} of ${goal}` : `${done} of ${goal} Pomodoros today`;
+    const ins = Store.insights(1);
+    const parts = [];
+    if (ins.streak > 0) parts.push(`${icon('flame', 'ic-xs')} ${ins.streak}-day streak`);
+    if (done < goal) parts.push(`${goal - done} to go`);
+    else parts.push('Nice work');
+    $('#goal-sub').innerHTML = parts.join(' · ');
 }
 
 function startTemplate(tpl, opts) {
@@ -318,6 +339,7 @@ function startTemplate(tpl, opts) {
 
 let lastStartedTemplate = null;
 let suppressDoneScreen = false;
+let goalJustReached = false;
 
 function beginRun(tpl, opts) {
     Sound.unlock();
@@ -612,6 +634,12 @@ Timer.on('done', ({ run, entry }) => {
         notify('Session complete', `${run.name}: ${run.pomodoros} Pomodoros, ${fmtDuration(run.focusSec)} focus`);
         announce('Session complete. Well done.');
     }
+    // Daily goal crossed with this session?
+    const goal = Store.getSettings().dailyGoal;
+    const after = Store.stats().today.pomodoros;
+    const before = after - (entry.pomodoros || 0);
+    goalJustReached = goal > 0 && before < goal && after >= goal;
+    if (goalJustReached) { setTimeout(() => { toast(`Daily goal reached: ${after} Pomodoros`, 3000); announce('Daily goal reached.'); }, 600); }
     showDone(run);
 });
 
@@ -632,6 +660,7 @@ function showDone(run) {
         { value: run.interruptions || 0, label: 'Interruptions' }
     ]);
     const extra = [];
+    if (goalJustReached) extra.push(`<div class="done-goal">${icon('target', 'ic-sm')} Daily goal reached</div>`);
     if (run.intention) extra.push(`<div class="done-intention">“${esc(run.intention)}”</div>`);
     if (run.tags && run.tags.length) extra.push(`<div class="tag-row">${run.tags.map(t => `<span class="tag-chip">${esc(t)}</span>`).join('')}</div>`);
     $('#done-extra').innerHTML = extra.join('');
@@ -762,6 +791,7 @@ function renderHistory() {
         { value: fmtDuration(s.all.focusSec), label: 'All-time focus' }
     ]);
     renderTagStats(s);
+    renderInsights();
     const list = Store.getHistory();
     const el = $('#history-list');
     if (!list.length) { el.innerHTML = '<div class="empty">No sessions yet. Finish a session and it shows up here.</div>'; return; }
@@ -783,6 +813,96 @@ function renderHistory() {
         </div>`;
     });
     el.innerHTML = html;
+}
+
+/* ---------- Charts (inline SVG, single series each) ---------- */
+function renderInsights() {
+    const ins = Store.insights(28);
+    const wrap = $('#insights');
+    const any = ins.series.some(d => d.focusSec > 0);
+    wrap.hidden = !any;
+    if (!any) return;
+    $('#insight-stats').innerHTML = statsHtml([
+        { value: ins.streak, label: ins.streak === 1 ? 'Day streak' : 'Day streak' },
+        { value: ins.longest, label: 'Longest streak' },
+        { value: ins.bestHour >= 0 ? `${pad(ins.bestHour)}–${pad((ins.bestHour + 1) % 24)}` : '–', label: 'Best hour' }
+    ]);
+    $('#chart-days').innerHTML = dayBarChart(ins.series);
+    $('#chart-hours').innerHTML = hourBarChart(ins.byHour, ins.bestHour);
+    $('#chart-tip').textContent = 'Tap a bar for details.';
+}
+
+/* 28 days of focus minutes. Bars are thin, rounded at the data end, sit on a
+   recessive baseline, 2px apart. Today is highlighted; only today and the
+   best day carry a value label. */
+function dayBarChart(series) {
+    const n = series.length, W = 336, H = 120, top = 18, bottom = 22;
+    const slot = W / n, bw = slot - 3;
+    const max = Math.max(1, ...series.map(d => d.focusSec));
+    const maxIdx = series.reduce((m, d, i) => d.focusSec > series[m].focusSec ? i : m, 0);
+    const y = v => top + (H - top - bottom) * (1 - v / max);
+    let svg = `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="Focus minutes per day, last 28 days">`;
+    // three light guide lines
+    [0.5, 1].forEach(f => { svg += `<line class="grid" x1="0" x2="${W}" y1="${y(max * f).toFixed(1)}" y2="${y(max * f).toFixed(1)}"/>`; });
+    series.forEach((d, i) => {
+        const x = i * slot + 1.5;
+        const h = d.focusSec > 0 ? Math.max(3, (H - bottom) - y(d.focusSec)) : 0;
+        const cls = i === n - 1 ? 'bar today' : 'bar';
+        svg += `<g class="hit" data-i="${i}">`;
+        svg += `<rect class="hitbox" x="${(i * slot).toFixed(1)}" y="0" width="${slot.toFixed(1)}" height="${H}"/>`;
+        if (h > 0) svg += `<rect class="${cls}" x="${x.toFixed(1)}" y="${(H - bottom - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3"/>`;
+        else svg += `<rect class="bar empty" x="${x.toFixed(1)}" y="${H - bottom - 2}" width="${bw.toFixed(1)}" height="2" rx="1"/>`;
+        if ((i === maxIdx || i === n - 1) && d.focusSec > 0) {
+            svg += `<text class="val" x="${(x + bw / 2).toFixed(1)}" y="${(H - bottom - h - 4).toFixed(1)}" text-anchor="middle">${Math.round(d.focusSec / 60)}</text>`;
+        }
+        svg += '</g>';
+    });
+    svg += `<line class="axis" x1="0" x2="${W}" y1="${H - bottom}" y2="${H - bottom}"/>`;
+    // week labels
+    series.forEach((d, i) => {
+        if (i % 7 === 0) {
+            const dt = new Date(d.ts);
+            svg += `<text class="lbl" x="${(i * slot + 1.5).toFixed(1)}" y="${H - 6}">${dt.getDate()} ${dt.toLocaleDateString(undefined, { month: 'short' })}</text>`;
+        }
+    });
+    svg += '</svg>';
+    return svg;
+}
+
+/* Focus minutes by hour of day. */
+function hourBarChart(byHour, best) {
+    const W = 336, H = 80, top = 10, bottom = 18, slot = W / 24, bw = slot - 3;
+    const max = Math.max(1, ...byHour);
+    let svg = `<svg viewBox="0 0 ${W} ${H}" class="chart hours" role="img" aria-label="Focus minutes by hour of day">`;
+    byHour.forEach((v, i) => {
+        const h = v > 0 ? Math.max(3, (H - top - bottom) * (v / max)) : 0;
+        const x = i * slot + 1.5;
+        svg += `<g class="hit" data-h="${i}"><rect class="hitbox" x="${(i * slot).toFixed(1)}" y="0" width="${slot.toFixed(1)}" height="${H}"/>`;
+        if (h > 0) svg += `<rect class="bar ${i === best ? 'today' : ''}" x="${x.toFixed(1)}" y="${(H - bottom - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3"/>`;
+        else svg += `<rect class="bar empty" x="${x.toFixed(1)}" y="${H - bottom - 2}" width="${bw.toFixed(1)}" height="2" rx="1"/>`;
+        svg += '</g>';
+    });
+    svg += `<line class="axis" x1="0" x2="${W}" y1="${H - bottom}" y2="${H - bottom}"/>`;
+    [0, 6, 12, 18].forEach(hh => { svg += `<text class="lbl" x="${(hh * slot + 1.5).toFixed(1)}" y="${H - 5}">${pad(hh)}</text>`; });
+    svg += `<text class="lbl" x="${W - 2}" y="${H - 5}" text-anchor="end">24</text>`;
+    svg += '</svg>';
+    return svg;
+}
+
+function chartTap(e) {
+    const g = e.target.closest('.hit');
+    if (!g) return;
+    const ins = Store.insights(28);
+    $$('.chart .hit.sel').forEach(el => el.classList.remove('sel'));
+    g.classList.add('sel');
+    if (g.dataset.i !== undefined) {
+        const d = ins.series[+g.dataset.i];
+        const dt = new Date(d.ts).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+        $('#chart-tip').innerHTML = `<b>${esc(dt)}</b> · ${esc(fmtDuration(d.focusSec))} · ${d.pomodoros} ${icon('tomato', 'ic-xs')} · ${d.sessions} session${d.sessions === 1 ? '' : 's'}`;
+    } else if (g.dataset.h !== undefined) {
+        const h = +g.dataset.h;
+        $('#chart-tip').innerHTML = `<b>${pad(h)}:00–${pad((h + 1) % 24)}:00</b> · ${esc(fmtDuration(ins.byHour[h]))} of focus, all time`;
+    }
 }
 
 /* Focus per tag, this week, as a small ranked list. */
@@ -810,6 +930,7 @@ function renderSettings() {
     $('#set-vibrate').checked = s.vibrate;
     $('#set-notify').checked = s.notify && ('Notification' in window) && Notification.permission === 'granted';
     $('#set-theme').value = s.theme;
+    $('#set-goal').value = s.dailyGoal;
     $('#set-bgaudio').checked = s.bgAudio;
     $('#set-voice').checked = s.voice && Voice.supported();
     $('#set-voice').disabled = !Voice.supported();
@@ -1047,6 +1168,14 @@ function bind() {
     bindSwitch('#set-sound', 'sound', on => { if (on) Sound.chime('focus'); });
     bindSwitch('#set-vibrate', 'vibrate', on => { if (on) vibrate([100]); });
     bindSwitch('#set-bgaudio', 'bgAudio', () => syncKeepAlive());
+    $('#set-goal').addEventListener('change', e => {
+        const v = Math.max(0, Math.min(30, parseInt(e.target.value, 10) || 0));
+        e.target.value = v;
+        Store.saveSettings({ dailyGoal: v });
+        toast(v ? `Daily goal: ${v} Pomodoros` : 'Daily goal off');
+    });
+    $('#chart-days').addEventListener('click', chartTap);
+    $('#chart-hours').addEventListener('click', chartTap);
     bindSwitch('#set-voice', 'voice', on => { if (on) Voice.say('Voice announcements on.'); });
     $('#set-notify').addEventListener('change', async e => {
         if (!e.target.checked) { Store.saveSettings({ notify: false }); return; }

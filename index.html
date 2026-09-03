@@ -170,6 +170,18 @@
                 <button class="btn btn-primary" id="btn-resume">Continue</button>
             </div>
 
+            <div class="card goal-card" id="goal-card" hidden>
+                <svg class="goal-ring" viewBox="0 0 64 64" aria-hidden="true">
+                    <circle class="goal-bg" cx="32" cy="32" r="26"></circle>
+                    <circle class="goal-fg" id="goal-fg" cx="32" cy="32" r="26"></circle>
+                    <text class="goal-num" id="goal-num" x="32" y="37" text-anchor="middle">0</text>
+                </svg>
+                <div class="goal-text">
+                    <div class="goal-title" id="goal-title"></div>
+                    <div class="goal-sub" id="goal-sub"></div>
+                </div>
+            </div>
+
             <h2 class="section-title">Quick start</h2>
             <p class="section-hint">Tap a template to start it right away. Hold it to adjust first.</p>
             <div id="quick-grid" class="quick-grid"></div>
@@ -363,6 +375,17 @@
         </header>
         <main class="content">
             <div class="stat-row" id="history-stats"></div>
+            <div id="insights" hidden>
+                <h2 class="section-title">Last 4 weeks</h2>
+                <div class="stat-row" id="insight-stats"></div>
+                <div class="card chart-card">
+                    <div class="chart-title">Focus minutes per day</div>
+                    <div id="chart-days"></div>
+                    <div class="chart-title">Focus by hour of day <span class="muted">· all time</span></div>
+                    <div id="chart-hours"></div>
+                    <div class="chart-tip" id="chart-tip">Tap a bar for details.</div>
+                </div>
+            </div>
             <h2 class="section-title" id="tag-stats-title" hidden>Focus by tag · this week</h2>
             <div id="tag-stats" class="tag-stats"></div>
             <h2 class="section-title">Sessions</h2>
@@ -389,6 +412,10 @@
                 <label class="setting-row">
                     <span>Countdown ticks in last 3 seconds</span>
                     <input type="checkbox" id="set-ticks" class="switch">
+                </label>
+                <label class="setting-row">
+                    <span>Daily goal<br><span class="muted small-left">Pomodoros per day, 0 = off</span></span>
+                    <input type="number" id="set-goal" class="num-small" inputmode="numeric" min="0" max="30">
                 </label>
             </div>
 
@@ -503,8 +530,8 @@
                 <div class="help-item">
                     <div class="help-icon" style="--c:var(--accent-2)"><svg class="ic"><use href="#i-chart"/></svg></div>
                     <div>
-                        <div class="help-title">History and your data</div>
-                        <p>Every finished or stopped session lands in <b>History</b> with the Pomodoros completed and the focus minutes. A Pomodoro counts once at least 80% of it was spent. Everything is stored on this device only. <b>Export</b> writes templates, history and settings to one file; <b>Import</b> reads it back, so you can move to a new phone.</p>
+                        <div class="help-title">History, goal and your data</div>
+                        <p>Every finished or stopped session lands in <b>History</b> with the Pomodoros completed and the focus minutes. A Pomodoro counts once at least 80% of it was spent. Set a <b>daily goal</b> above and the Timer tab shows a ring filling up through the day, with your streak of consecutive days. History charts the last four weeks day by day and your focus by hour of day; tap a bar for the numbers. Everything is stored on this device only. <b>Export</b> writes templates, history and settings to one file; <b>Import</b> reads it back, so you can move to a new phone.</p>
                     </div>
                 </div>
             </div>
@@ -514,6 +541,13 @@
                 <div class="version-head">
                     <span class="version-name">AMS PomoTimer</span>
                     <span class="version-num" id="about-version"></span>
+                </div>
+                <div class="version-block">
+                    <div class="version-title">1.5.0 <span class="muted">· 3 September 2026</span></div>
+                    <ul>
+                        <li><b>Daily goal.</b> Set a number of Pomodoros per day in Settings. The Timer tab shows a ring that fills up through the day, how many are left, and your streak of consecutive days with at least one Pomodoro. Reaching the goal is celebrated on the summary screen.</li>
+                        <li><b>History charts.</b> Focus minutes per day for the last four weeks, focus by hour of day, current and longest streak, and your best hour. Tap any bar for the exact figures.</li>
+                    </ul>
                 </div>
                 <div class="version-block">
                     <div class="version-title">1.4.0 <span class="muted">· 3 September 2026</span></div>

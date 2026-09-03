@@ -933,6 +933,46 @@ body[data-tab="templates"] .section-title { color: var(--phase-prep); }
 body[data-tab="history"] .section-title { color: var(--phase-startup); }
 body[data-tab="settings"] .section-title { color: var(--phase-cooldown); }
 
+/* ---------- Daily goal ---------- */
+.goal-card {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-bottom: 1rem;
+    border-color: color-mix(in srgb, var(--phase-prep) 45%, var(--border));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--phase-prep) 16%, var(--surface)), var(--surface) 70%);
+}
+.goal-card.reached { border-color: color-mix(in srgb, var(--success) 60%, var(--border)); background: linear-gradient(135deg, color-mix(in srgb, var(--success) 18%, var(--surface)), var(--surface) 70%); }
+.goal-ring { width: 4rem; height: 4rem; flex-shrink: 0; transform: rotate(-90deg); }
+.goal-bg { fill: none; stroke: var(--surface-2); stroke-width: 6; }
+.goal-fg { fill: none; stroke: var(--phase-prep); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 163.36; transition: stroke-dashoffset 0.6s ease; }
+.goal-card.reached .goal-fg { stroke: var(--success); }
+.goal-num { fill: var(--text); font-size: 18px; font-weight: 900; transform: rotate(90deg); transform-origin: 32px 32px; }
+.goal-text { flex: 1; min-width: 0; }
+.goal-title { font-weight: 800; }
+.goal-sub { font-size: 0.85rem; color: var(--text-2); margin-top: 0.15rem; }
+.goal-sub .ic { color: var(--accent-2); }
+.done-goal { font-weight: 800; color: var(--success); margin-bottom: 0.6rem; display: inline-flex; align-items: center; gap: 0.3rem; }
+.num-small { width: 5rem; text-align: center; min-height: 2.4rem; padding: 0.4rem; }
+
+/* ---------- Charts ---------- */
+.chart-card { padding: 0.9rem 0.9rem 0.6rem; }
+.chart-title { font-size: 0.8rem; font-weight: 800; color: var(--text-2); margin: 0.2rem 0 0.4rem; }
+.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.chart .grid { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 4; }
+.chart .axis { stroke: var(--border); stroke-width: 1; }
+.chart .bar { fill: color-mix(in srgb, var(--phase-focus) 75%, var(--surface)); }
+.chart .bar.today { fill: var(--phase-focus); }
+.chart .bar.empty { fill: var(--surface-2); }
+.chart .hit.sel .bar { fill: var(--phase-prep); }
+.chart .hitbox { fill: transparent; }
+.chart .val { fill: var(--text); font-size: 9px; font-weight: 800; }
+.chart .lbl { fill: var(--text-2); font-size: 8.5px; }
+.chart.hours { margin-bottom: 0.2rem; }
+.chart-tip { font-size: 0.82rem; color: var(--text-2); margin-top: 0.4rem; min-height: 1.2rem; }
+.chart-tip b { color: var(--text); }
+.chart-tip .ic { color: var(--phase-focus); }
+
 /* ---------- Intention, interruptions, tags ---------- */
 .intention-row {
     width: 100%;

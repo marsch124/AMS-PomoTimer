@@ -66,7 +66,8 @@ const Store = (() => {
         notify: false,
         theme: 'system',
         bgAudio: true,   // keep an inaudible track playing so alerts work when locked
-        voice: false     // spoken announcements at each phase change
+        voice: false,    // spoken announcements at each phase change
+        dailyGoal: 4     // Pomodoros per day; 0 switches the goal off
     };
 
     function uid(prefix) {
@@ -295,6 +296,57 @@ const Store = (() => {
         return out;
     }
 
+    /* Per-day and per-hour figures for the charts, plus streaks.
+       A "day with focus" is a day with at least one completed Pomodoro. */
+    function insights(days) {
+        days = days || 28;
+        const hist = getHistory();
+        const byDay = {};
+        const byHour = new Array(24).fill(0);
+        hist.forEach(h => {
+            const k = dayKey(h.endedAt);
+            const d = byDay[k] || (byDay[k] = { pomodoros: 0, focusSec: 0, sessions: 0 });
+            d.pomodoros += h.pomodoros || 0;
+            d.focusSec += h.focusSec || 0;
+            d.sessions++;
+            // Spread the focus time over the hours the session covered.
+            const start = h.startedAt || h.endedAt, end = h.endedAt || start;
+            const span = Math.max(1, end - start);
+            const focus = h.focusSec || 0;
+            let t = start;
+            while (t < end) {
+                const hourEnd = new Date(t); hourEnd.setMinutes(60, 0, 0);
+                const slice = Math.min(hourEnd.getTime(), end) - t;
+                byHour[new Date(t).getHours()] += focus * (slice / span);
+                t += slice;
+            }
+        });
+        // Series for the last N days, oldest first
+        const series = [];
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        for (let i = days - 1; i >= 0; i--) {
+            const d = new Date(today); d.setDate(today.getDate() - i);
+            const k = dayKey(d.getTime());
+            const v = byDay[k] || { pomodoros: 0, focusSec: 0, sessions: 0 };
+            series.push({ key: k, ts: d.getTime(), ...v });
+        }
+        // Streaks: consecutive days with a Pomodoro, counting back from today (or yesterday if today is still empty)
+        let streak = 0;
+        const cursor = new Date(today);
+        if (!(byDay[dayKey(cursor.getTime())] || {}).pomodoros) cursor.setDate(cursor.getDate() - 1);
+        while ((byDay[dayKey(cursor.getTime())] || {}).pomodoros > 0) { streak++; cursor.setDate(cursor.getDate() - 1); }
+        let longest = 0, run = 0, prev = null;
+        Object.keys(byDay).filter(k => byDay[k].pomodoros > 0).sort().forEach(k => {
+            const t = new Date(k + 'T00:00:00').getTime();
+            run = (prev !== null && Math.round((t - prev) / 86400000) === 1) ? run + 1 : 1;
+            prev = t;
+            if (run > longest) longest = run;
+        });
+        let bestHour = -1, bestVal = 0;
+        byHour.forEach((v, i) => { if (v > bestVal) { bestVal = v; bestHour = i; } });
+        return { series, byHour, streak, longest, bestHour, bestHourSec: bestVal };
+    }
+
     /* ---------- Running session ---------- */
     function getRun() { return read(KEYS.run, null); }
     function saveRun(run) { write(KEYS.run, run); }
@@ -363,7 +415,7 @@ const Store = (() => {
         PHASE_TYPES, ICONS, COLORS, TAG_PRESETS, uid, step, iconFor, cleanTags, allTags,
         getTemplates, getTemplate, saveTemplate, deleteTemplate, newTemplate, duplicateTemplate, restoreBuiltins, quickTemplate, templateTotalSec,
         getSettings, saveSettings,
-        getHistory, addHistory, deleteHistory, clearHistory, stats, dayKey,
+        getHistory, addHistory, deleteHistory, clearHistory, stats, insights, dayKey,
         getRun, saveRun, getLastTemplateId, setLastTemplateId,
         exportData, importData
     };
