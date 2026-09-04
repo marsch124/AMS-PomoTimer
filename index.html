@@ -536,7 +536,7 @@
                     <div class="help-icon" style="--c:var(--phase-pause)"><svg class="ic"><use href="#i-pause"/></svg></div>
                     <div>
                         <div class="help-title">While a session runs</div>
-                        <p data-i18n-html="help.4">The big button pauses and resumes. <b>Skip</b> jumps to the next phase, <b>Prev</b> restarts the current one (or goes back if you just started it). <b>+1 / −1 min</b> adjusts the running phase. When a phase rings out and you are not quite ready, <b>1 min more</b> or <b>5 min more</b> reopens that phase for the extra time; the next phase then starts fresh afterwards. The offer stays on screen while the timer waits for your tap, or for two minutes after an automatic advance. The list under the controls shows every phase; tap one to jump straight to it. The bar shows how far the whole session has come and when it will end. Leaving the screen does not stop the timer; a <b>Continue</b> card on the Timer tab brings you back.</p>
+                        <p data-i18n-html="help.4">The big button pauses and resumes. <b>Skip</b> jumps to the next phase, <b>Prev</b> restarts the current one (or goes back if you just started it). <b>+1 / −1 min</b> adjusts the running phase. When a phase rings out and you are not quite ready, <b>1 min more</b> or <b>5 min more</b> reopens that phase for the extra time; the next phase then starts fresh afterwards. The offer stays on screen while the timer waits for your tap, or for two minutes after an automatic advance. If you pause and walk away, the app nudges you after ten minutes and, after three quarters of an hour, asks whether to carry on, finish and keep it, or discard it. The list under the controls shows every phase; tap one to jump straight to it. The bar shows how far the whole session has come and when it will end. Leaving the screen does not stop the timer; a <b>Continue</b> card on the Timer tab brings you back.</p>
                     </div>
                 </div>
                 <div class="help-item">
@@ -584,6 +584,13 @@
                 <div class="version-head">
                     <span class="version-name">AMS PomoTimer</span>
                     <span class="version-num" id="about-version"></span>
+                </div>
+                <div class="version-block">
+                    <div class="version-title">1.7.0 <span class="muted">· 4 September 2026</span></div>
+                    <ul data-i18n-html="ver.1.7.0">
+                        <li><b>A paused session no longer gets lost.</b> If the timer stands still for ten minutes, whether paused or waiting for your tap, the app gives a quiet nudge: a buzz, a notification, and a line on screen.</li>
+                        <li>After three quarters of an hour it asks what to do with it: <b>carry on</b>, <b>finish and keep it</b> (the Pomodoros done so far go to History), or <b>discard</b> it. The question also appears when you come back to the app after leaving a session standing.</li>
+                    </ul>
                 </div>
                 <div class="version-block">
                     <div class="version-title">1.6.8 <span class="muted">· 4 September 2026</span></div>
@@ -748,6 +755,14 @@
                 <button class="btn btn-primary" id="btn-share-native">Share link</button>
             </div>
             <button class="btn btn-secondary btn-wide" id="btn-share-close">Close</button>
+        </div>
+    </div>
+
+    <!-- ============ CHOICE (a question with several answers) ============ -->
+    <div class="modal" id="choice-modal" hidden>
+        <div class="modal-box">
+            <div class="modal-text" id="choice-text"></div>
+            <div class="choice-actions" id="choice-actions"></div>
         </div>
     </div>
 

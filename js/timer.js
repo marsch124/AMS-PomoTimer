@@ -124,10 +124,13 @@ const Timer = (() => {
             run.phaseStartedAt = base;
             run.endsAt = base + run.phaseTotalMs;
             run.remainingMs = null;
+            run.idleSince = null;
         } else {
             run.status = 'waiting';
             run.remainingMs = run.phaseTotalMs;
             run.endsAt = null;
+            // The clock stands still from here until the user taps.
+            run.idleSince = now();
         }
         lastTickSecond = null;
     }
@@ -173,7 +176,7 @@ const Timer = (() => {
         }
     }
 
-    function finish(completed) {
+    function finish(completed, keepAnyway) {
         if (!run) return;
         if (!completed) {
             // Stopped mid-phase: credit what was actually spent.
@@ -200,8 +203,9 @@ const Timer = (() => {
             tags: Store.cleanTags(run.tags),
             interruptions: run.interruptions || 0
         };
-        // Do not clutter history with quick timers that were stopped at once.
-        if (entry.focusSec >= 60 || entry.completed) Store.addHistory(entry);
+        // Do not clutter history with quick timers that were stopped at once,
+        // unless the user explicitly asked for this one to be kept.
+        if (entry.focusSec >= 60 || entry.completed || keepAnyway) Store.addHistory(entry);
         const finishedRun = run;
         persist();
         run = null;
@@ -215,6 +219,9 @@ const Timer = (() => {
         run.remainingMs = Math.max(0, run.endsAt - now());
         run.status = 'paused';
         run.endsAt = null;
+        // When the standing still began, so the app can nudge and, after a
+        // long while, offer to resume, finish or discard the session.
+        run.idleSince = now();
         persist();
     }
 
@@ -224,6 +231,7 @@ const Timer = (() => {
         run.phaseStartedAt = run.endsAt - run.phaseTotalMs;
         run.status = 'running';
         run.remainingMs = null;
+        run.idleSince = null;
         lastTickSecond = null;
         persist();
         ensureTicking();
@@ -306,9 +314,20 @@ const Timer = (() => {
         persist();
     }
 
-    function stop() {
+    function stop(keepAnyway) {
         if (!run) return;
-        finish(false);
+        finish(false, !!keepAnyway);
+    }
+
+    /* Throw the session away without writing it to History. */
+    function discard() {
+        if (!run) return null;
+        const dropped = run;
+        stopTicking();
+        run = null;
+        Store.saveRun(null);
+        emit('change', null);
+        return dropped;
     }
 
     function setIntention(text) {
@@ -351,11 +370,12 @@ const Timer = (() => {
             sessionTotalMs: sessionTotal,
             sessionRemainingMs: sessionRemaining,
             nextStep: run.steps[run.index + 1] || null,
-            lastFinished: run.lastFinished || null
+            lastFinished: run.lastFinished || null,
+            idleMs: run.idleSince ? Math.max(0, now() - run.idleSince) : 0
         };
     }
 
     function isActive() { return !!run; }
 
-    return { on, start, restore, pause, resume, toggle, startWaiting, jumpTo, extendFinished, next, prev, adjust, stop, setIntention, logInterruption, setTags, tick, snapshot, isActive };
+    return { on, start, restore, pause, resume, toggle, startWaiting, jumpTo, extendFinished, next, prev, adjust, stop, discard, setIntention, logInterruption, setTags, tick, snapshot, isActive };
 })();

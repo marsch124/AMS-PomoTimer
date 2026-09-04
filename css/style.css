@@ -1196,6 +1196,8 @@ body[data-tab="settings"] .section-title { color: var(--phase-cooldown); }
 }
 .modal-text { font-size: 1rem; line-height: 1.4; margin-bottom: 1rem; }
 .modal-actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
+.choice-actions { display: flex; flex-direction: column; }
+.choice-actions .btn:first-child { margin-top: 0; }
 .modal-actions .btn { flex: 1; }
 
 /* ---------- Share ---------- */

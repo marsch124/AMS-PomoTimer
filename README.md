@@ -91,6 +91,12 @@ Then open http://localhost:7794.
 
 ## Version history
 
+**v1.7.0 (2026-09-04)**
+- A paused or waiting session nudges after ten minutes and, after 45, asks whether to carry on, finish and keep it, or discard it.
+
+**v1.6.8 (2026-09-04)**
+- Tabs sit at the bottom edge; the strip below them takes the bar colour.
+
 **v1.6.5 (2026-09-04)**
 - Updates apply themselves after download; "Update now" button in Settings.
 

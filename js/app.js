@@ -1,6 +1,11 @@
 /* AMS PomoTimer — UI and app wiring */
 
-const APP_VERSION = '1.6.8';
+const APP_VERSION = '1.7.0';
+
+// A paused or waiting session nudges after this long, and after the longer
+// stretch the app asks what to do with it.
+const IDLE_NUDGE_MS = 10 * 60 * 1000;
+const IDLE_STALE_MS = 45 * 60 * 1000;
 
 // After an automatic advance, the "1 / 5 min more" offer for the phase that
 // just rang out stays on screen for this long.
@@ -81,6 +86,27 @@ function toast(msg, ms) {
     el.hidden = false;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { el.hidden = true; }, ms || 2200);
+}
+
+/* A question with several answers. Returns the chosen key. There is no way
+   out without choosing, so a stale session is always dealt with. */
+function choiceDialog(text, options) {
+    return new Promise(resolve => {
+        const modal = $('#choice-modal');
+        $('#choice-text').textContent = text;
+        const box = $('#choice-actions');
+        box.innerHTML = options.map(o =>
+            `<button class="btn ${o.danger ? 'btn-outline-danger' : o.primary ? 'btn-primary' : 'btn-secondary'} btn-wide" data-key="${esc(o.key)}">${esc(o.label)}</button>`).join('');
+        modal.hidden = false;
+        const onClick = e => {
+            const b = e.target.closest('[data-key]');
+            if (!b) return;
+            box.removeEventListener('click', onClick);
+            modal.hidden = true;
+            resolve(b.dataset.key);
+        };
+        box.addEventListener('click', onClick);
+    });
 }
 
 function confirmDialog(text, okLabel) {
@@ -617,6 +643,62 @@ function startUiLoop() {
     uiInterval = setInterval(() => {
         if (currentScreen === 'timer' && Timer.isActive()) renderTimer(false);
     }, 250);
+    setInterval(checkIdle, 20000);
+}
+
+/* ================= A session left standing still ================= */
+let lastNudgeAt = 0;
+let staleAsking = false;
+
+function checkIdle() {
+    const snap = Timer.snapshot();
+    if (!snap || snap.status === 'running') { lastNudgeAt = 0; return; }
+    const idle = snap.idleMs;
+    if (!idle) return;
+    if (idle >= IDLE_STALE_MS) { askStale(snap); return; }
+    if (idle >= IDLE_NUDGE_MS && Date.now() - lastNudgeAt >= IDLE_NUDGE_MS) {
+        lastNudgeAt = Date.now();
+        vibrate([120, 80, 120]);
+        const mins = Math.round(idle / 60000);
+        const waiting = snap.status === 'waiting';
+        notify(t(waiting ? 'Waiting for you' : 'Session paused'),
+            t('{name} · {n} minutes so far. Tap to carry on.', { name: snap.run.name, n: mins }));
+        if (!document.hidden) toast(t('Still {n} minutes {state}. Tap the big button to carry on.', { n: mins, state: t(waiting ? 'waiting' : 'paused') }), 4000);
+    }
+}
+
+/* After a long stretch the session is probably forgotten: offer the three
+   sensible ways out rather than leaving it hanging. */
+async function askStale(snap) {
+    if (staleAsking) return;
+    staleAsking = true;
+    const mins = Math.round(snap.idleMs / 60000);
+    const span = mins >= 120 ? t('{n} hours', { n: Math.round(mins / 60) }) : t('{n} minutes', { n: mins });
+    const done = snap.run.pomodoros;
+    const tally = done === 0 ? t('No Pomodoro is finished yet.')
+        : done === 1 ? t('1 Pomodoro is done so far.')
+        : t('{n} Pomodoros are done so far.', { n: done });
+    const choice = await choiceDialog(
+        t('“{name}” has been standing still for {d}.', { name: snap.run.name, d: span }) + ' ' + tally,
+        [
+            { key: 'resume', label: t('Carry on'), primary: true },
+            { key: 'finish', label: t('Finish and keep it') },
+            { key: 'discard', label: t('Discard the session'), danger: true }
+        ]);
+    if (choice === 'resume') {
+        Timer.resume();
+        showScreen('timer');
+    } else if (choice === 'finish') {
+        Timer.stop(true);
+    } else {
+        Timer.discard();
+        syncKeepAlive();
+        MediaCtl.update();
+        showScreen('home');
+        toast(t('Session discarded'));
+    }
+    lastNudgeAt = 0;
+    staleAsking = false;
 }
 
 /* Timer engine events */
@@ -1349,7 +1431,7 @@ function bind() {
 
     // Keep the countdown honest when the phone wakes up
     document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) { Timer.tick(); if (currentScreen === 'timer') renderTimer(true); if (currentScreen === 'home') renderHome(); }
+        if (!document.hidden) { Timer.tick(); checkIdle(); if (currentScreen === 'timer') renderTimer(true); if (currentScreen === 'home') renderHome(); }
         Wake.sync();
     });
     window.addEventListener('pageshow', () => { Timer.tick(); if (currentScreen === 'timer') renderTimer(true); });
@@ -1421,6 +1503,7 @@ function init() {
     if (!handleLaunchAction() && currentScreen !== 'done') {
         showScreen(Timer.isActive() ? 'timer' : 'home');
     }
+    checkIdle();
 
     if ('serviceWorker' in navigator) {
         const hadController = !!navigator.serviceWorker.controller;

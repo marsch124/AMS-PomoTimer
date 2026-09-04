@@ -143,6 +143,17 @@ const I18N = (() => {
         'help.7.title': 'Handy in der Tasche?', 'help.8.title': 'Verlauf, Tagesziel und deine Daten',
 
         // ---- Version blocks (HTML) ----
+        'ver.1.7.0': '<li><b>Eine pausierte Sitzung geht nicht mehr verloren.</b> Steht der Timer zehn Minuten still, ob pausiert oder wartend, meldet sich die App leise: ein Vibrieren, eine Mitteilung und eine Zeile am Bildschirm.</li><li>Nach einer Dreiviertelstunde fragt sie, was damit geschehen soll: <b>weitermachen</b>, <b>beenden und behalten</b> (die bisherigen Pomodoros wandern in den Verlauf) oder <b>verwerfen</b>. Die Frage kommt auch, wenn du zur App zurückkehrst und eine Sitzung stehen geblieben ist.</li>',
+        'Session paused': 'Sitzung pausiert', 'Waiting for you': 'Wartet auf dich',
+        '{name} · {n} minutes so far. Tap to carry on.': '{name} · bisher {n} Minuten. Tippe, um weiterzumachen.',
+        'Still {n} minutes {state}. Tap the big button to carry on.': 'Seit {n} Minuten {state}. Tippe den großen Knopf, um weiterzumachen.',
+        '{n} hours': '{n} Stunden',
+        '“{name}” has been standing still for {d}.': '„{name}“ steht seit {d} still.',
+        'No Pomodoro is finished yet.': 'Noch ist kein Pomodoro fertig.',
+        '1 Pomodoro is done so far.': 'Bisher ist 1 Pomodoro geschafft.',
+        '{n} Pomodoros are done so far.': 'Bisher sind {n} Pomodoros geschafft.',
+        'Carry on': 'Weitermachen', 'Finish and keep it': 'Beenden und behalten', 'Discard the session': 'Sitzung verwerfen',
+        'Session discarded': 'Sitzung verworfen',
         'ver.1.6.8': '<li>Die Tab-Leiste reicht jetzt bis zur Unterkante des Bildschirms: der Streifen, den das Handy unter der App frei hält, ist in der Leistenfarbe gefärbt.</li>',
         'ver.1.6.7': '<li>Die unteren Tabs sitzen ganz unten am Bildschirm, und die Leistenfarbe füllt den Bereich darunter.</li>',
         'ver.1.6.6': '<li>Die unteren Tabs sitzen etwas tiefer am Bildschirm.</li>',
