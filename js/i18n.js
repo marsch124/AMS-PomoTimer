@@ -13,6 +13,7 @@ const I18N = (() => {
         'Quick start': 'Schnellstart',
         'Tap a template to start it right away. Hold it to adjust first.': 'Tippe auf eine Vorlage, um sofort zu starten. Halte sie gedrückt, um vorher etwas anzupassen.',
         'Quick timer': 'Schnell-Timer',
+        'Bar': 'Balken',
         'The bar in each card is the session: one block per phase, in order, as long as the phase lasts.': 'Der Balken in jeder Karte ist die Sitzung: ein Block pro Phase, der Reihe nach, so lang wie die Phase dauert.',
         'One single Pomodoro, no other phases.': 'Ein einzelner Pomodoro, keine weiteren Phasen.',
         'Minutes': 'Minuten', 'Start': 'Start', 'Today': 'Heute', 'Yesterday': 'Gestern',
