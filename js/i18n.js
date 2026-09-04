@@ -143,6 +143,10 @@ const I18N = (() => {
         'help.7.title': 'Handy in der Tasche?', 'help.8.title': 'Verlauf, Tagesziel und deine Daten',
 
         // ---- Version blocks (HTML) ----
+        'ver.1.8.0': '<li><b>Eine Notiz zum Abschluss.</b> Die Zusammenfassung fragt, wie es gelaufen ist. Was du schreibst, bleibt bei der Sitzung, und der Verlauf wird so zu einem Protokoll dessen, was du wirklich getan hast, nicht nur wie viele Pomodoros du gezählt hast.</li><li>Tippe im Verlauf auf eine Sitzung, um die Notiz später zu schreiben oder zu ändern.</li>',
+        'How did it go?': 'Wie ist es gelaufen?', '(optional)': '(optional)',
+        'e.g. Draft finished, numbers still missing': 'z. B. Entwurf fertig, Zahlen fehlen noch',
+        'Kept with this session': 'Bei dieser Sitzung gespeichert',
         'ver.1.7.0': '<li><b>Eine pausierte Sitzung geht nicht mehr verloren.</b> Steht der Timer zehn Minuten still, ob pausiert oder wartend, meldet sich die App leise: ein Vibrieren, eine Mitteilung und eine Zeile am Bildschirm.</li><li>Nach einer Dreiviertelstunde fragt sie, was damit geschehen soll: <b>weitermachen</b>, <b>beenden und behalten</b> (die bisherigen Pomodoros wandern in den Verlauf) oder <b>verwerfen</b>. Die Frage kommt auch, wenn du zur App zurückkehrst und eine Sitzung stehen geblieben ist.</li>',
         'Session paused': 'Sitzung pausiert', 'Waiting for you': 'Wartet auf dich',
         '{name} · {n} minutes so far. Tap to carry on.': '{name} · bisher {n} Minuten. Tippe, um weiterzumachen.',

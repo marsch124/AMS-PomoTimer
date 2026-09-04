@@ -293,6 +293,11 @@
             <div class="done-sub" id="done-sub"></div>
             <div class="stat-row" id="done-stats"></div>
             <div id="done-extra"></div>
+            <label class="note-box" id="done-note-box" hidden>
+                <span class="field-label">How did it go? <span class="muted">(optional)</span></span>
+                <input type="text" id="done-note" maxlength="140" placeholder="e.g. Draft finished, numbers still missing">
+                <span class="note-saved" id="done-note-saved" hidden>Kept with this session</span>
+            </label>
             <button class="btn btn-primary btn-wide" id="btn-done-again"><svg class="ic"><use href="#i-play"/></svg> Run again</button>
             <button class="btn btn-secondary btn-wide" id="btn-done-home">Back to home</button>
         </main>
@@ -564,7 +569,7 @@
                     <div class="help-icon" style="--c:var(--accent-2)"><svg class="ic"><use href="#i-chart"/></svg></div>
                     <div>
                         <div class="help-title">History, goal and your data</div>
-                        <p data-i18n-html="help.8">Every finished or stopped session lands in <b>History</b> with the Pomodoros completed and the focus minutes. A Pomodoro counts once at least 80% of it was spent. Set a <b>daily goal</b> above and the Timer tab shows a ring filling up through the day, with your streak of consecutive days. History charts the last four weeks day by day and your focus by hour of day; tap a bar for the numbers. Everything is stored on this device only. <b>Export</b> writes templates, history and settings to one file; <b>Import</b> reads it back, so you can move to a new phone.</p>
+                        <p data-i18n-html="help.8">When a session ends, the summary asks <b>how it went</b>; that note is kept with the session, and tapping a session in History lets you write or change it later. Every finished or stopped session lands in <b>History</b> with the Pomodoros completed and the focus minutes. A Pomodoro counts once at least 80% of it was spent. Set a <b>daily goal</b> above and the Timer tab shows a ring filling up through the day, with your streak of consecutive days. History charts the last four weeks day by day and your focus by hour of day; tap a bar for the numbers. Everything is stored on this device only. <b>Export</b> writes templates, history and settings to one file; <b>Import</b> reads it back, so you can move to a new phone.</p>
                     </div>
                 </div>
                 <div class="help-item">
@@ -584,6 +589,13 @@
                 <div class="version-head">
                     <span class="version-name">AMS PomoTimer</span>
                     <span class="version-num" id="about-version"></span>
+                </div>
+                <div class="version-block">
+                    <div class="version-title">1.8.0 <span class="muted">· 4 September 2026</span></div>
+                    <ul data-i18n-html="ver.1.8.0">
+                        <li><b>A note when the session ends.</b> The summary screen asks how it went. Whatever you write is kept with the session, so History becomes a record of what you actually did, not only how many Pomodoros you counted.</li>
+                        <li>Tap any session in History to write or change its note later.</li>
+                    </ul>
                 </div>
                 <div class="version-block">
                     <div class="version-title">1.7.0 <span class="muted">· 4 September 2026</span></div>

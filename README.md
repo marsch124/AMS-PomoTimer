@@ -91,6 +91,9 @@ Then open http://localhost:7794.
 
 ## Version history
 
+**v1.8.0 (2026-09-04)**
+- A closing note on the summary screen, kept with the session; tap a session in History to write or change it later.
+
 **v1.7.0 (2026-09-04)**
 - A paused or waiting session nudges after ten minutes and, after 45, asks whether to carry on, finish and keep it, or discard it.
 

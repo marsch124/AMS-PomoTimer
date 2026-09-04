@@ -1,6 +1,6 @@
 /* AMS PomoTimer — UI and app wiring */
 
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.8.0';
 
 // A paused or waiting session nudges after this long, and after the longer
 // stretch the app asks what to do with it.
@@ -778,7 +778,26 @@ function showDone(run) {
     if (run.intention) extra.push(`<div class="done-intention">“${esc(run.intention)}”</div>`);
     if (run.tags && run.tags.length) extra.push(`<div class="tag-row">${run.tags.map(t => `<span class="tag-chip">${esc(t)}</span>`).join('')}</div>`);
     $('#done-extra').innerHTML = extra.join('');
+    // The note belongs to the saved session, so it is offered only when the
+    // session actually went into History.
+    const entry = Store.getHistory().find(h => h.id === run.id);
+    doneNoteId = entry ? entry.id : null;
+    $('#done-note-box').hidden = !entry;
+    $('#done-note').value = entry && entry.note ? entry.note : '';
+    $('#done-note-saved').hidden = !(entry && entry.note);
     showScreen('done');
+}
+
+/* The closing note on the summary screen: saved as it is typed, and again
+   whenever the screen is left or the app goes away. */
+let doneNoteId = null;
+let doneNoteTimer = null;
+function saveDoneNote() {
+    clearTimeout(doneNoteTimer);
+    if (!doneNoteId) return;
+    const v = $('#done-note').value.trim();
+    Store.updateHistory(doneNoteId, { note: v });
+    $('#done-note-saved').hidden = !v;
 }
 
 /* ================= Templates list ================= */
@@ -920,6 +939,7 @@ function renderHistory() {
             <span class="h-body">
                 <div class="h-name">${esc(h.name)}${h.completed ? '' : ` <span class="muted">${esc(t('· stopped'))}</span>`}</div>
                 ${h.intention ? `<div class="h-intention">“${esc(h.intention)}”</div>` : ''}
+                ${h.note ? `<div class="h-note">${icon('pen', 'ic-xs')} ${esc(h.note)}</div>` : ''}
                 <div class="h-meta">${fmtTime(h.startedAt)}–${fmtTime(h.endedAt)} · ${h.pomodoros} ${icon('tomato', 'ic-xs')} · ${h.phasesDone}/${h.phasesTotal} ${esc(t('phases'))}${intr}${tags ? ' · ' + tags : ''}</div>
             </span>
             <span class="h-focus">${fmtDuration(h.focusSec)}</span>
@@ -1229,8 +1249,14 @@ function bind() {
     });
 
     // Done
-    $('#btn-done-home').addEventListener('click', () => showScreen('home'));
+    $('#done-note').addEventListener('input', () => {
+        clearTimeout(doneNoteTimer);
+        doneNoteTimer = setTimeout(saveDoneNote, 500);
+    });
+    $('#done-note').addEventListener('blur', saveDoneNote);
+    $('#btn-done-home').addEventListener('click', () => { saveDoneNote(); showScreen('home'); });
     $('#btn-done-again').addEventListener('click', () => {
+        saveDoneNote();
         if (lastStartedTemplate) { startTemplate(lastStartedTemplate); return; }
         showScreen('home');
     });
@@ -1340,8 +1366,14 @@ function bind() {
     // History
     $('#history-list').addEventListener('click', async e => {
         const del = e.target.closest('[data-del]');
-        if (!del) return;
-        Store.deleteHistory(del.dataset.del);
+        if (del) { Store.deleteHistory(del.dataset.del); renderHistory(); return; }
+        const row = e.target.closest('.history-row');
+        if (!row) return;
+        const entry = Store.getHistory().find(h => h.id === row.dataset.id);
+        if (!entry) return;
+        const v = await promptDialog(t('How did it go?'), entry.note || '', t('Save'));
+        if (v === null) return;
+        Store.updateHistory(entry.id, { note: v });
         renderHistory();
     });
     $('#btn-clear-history').addEventListener('click', async () => {
@@ -1431,6 +1463,7 @@ function bind() {
 
     // Keep the countdown honest when the phone wakes up
     document.addEventListener('visibilitychange', () => {
+        if (document.hidden && currentScreen === 'done') saveDoneNote();
         if (!document.hidden) { Timer.tick(); checkIdle(); if (currentScreen === 'timer') renderTimer(true); if (currentScreen === 'home') renderHome(); }
         Wake.sync();
     });

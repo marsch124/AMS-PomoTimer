@@ -325,6 +325,17 @@ const Store = (() => {
         write(KEYS.history, list);
     }
 
+    /* Change one saved session, e.g. to add the note written afterwards. */
+    function updateHistory(id, patch) {
+        const list = getHistory();
+        const i = list.findIndex(h => h.id === id);
+        if (i < 0) return null;
+        if (patch && typeof patch.note === 'string') patch = { ...patch, note: patch.note.trim().slice(0, 140) };
+        list[i] = { ...list[i], ...patch };
+        write(KEYS.history, list);
+        return list[i];
+    }
+
     function deleteHistory(id) {
         write(KEYS.history, getHistory().filter(h => h.id !== id));
     }
@@ -491,7 +502,7 @@ const Store = (() => {
         PHASE_TYPES, ICONS, COLORS, TAG_PRESETS, uid, step, iconFor, cleanTags, allTags,
         getTemplates, getTemplate, saveTemplate, deleteTemplate, newTemplate, duplicateTemplate, restoreBuiltins, quickTemplate, templateTotalSec,
         getSettings, saveSettings,
-        getHistory, addHistory, deleteHistory, clearHistory, stats, insights, dayKey,
+        getHistory, addHistory, updateHistory, deleteHistory, clearHistory, stats, insights, dayKey,
         getRun, saveRun, getLastTemplateId, setLastTemplateId,
         exportData, importData, encodeShare, decodeShare, findTemplateByName,
         getLastExport, setLastExport, getLastBackupNag, setLastBackupNag
