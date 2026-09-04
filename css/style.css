@@ -930,15 +930,27 @@ select {
     right: 0;
     bottom: 0;
     height: calc(var(--tabbar-h) + var(--safe-bottom));
-    /* The tabs sit a little lower than the phone's safe area suggests; the
-       home indicator still has room. */
-    padding-bottom: max(0px, calc(var(--safe-bottom) - 12px));
+    /* The tabs sit as low as they can: only a sliver is left for the home
+       indicator, which is a thin line at the very edge. */
+    padding-bottom: max(6px, calc(var(--safe-bottom) - 22px));
     background: color-mix(in srgb, var(--bg-2) 92%, transparent);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-top: 1px solid var(--border);
     display: flex;
     z-index: 20;
+}
+/* Paint the bar colour into anything the phone exposes below the viewport
+   (rubber-band bounce, inset area), so no pale strip shows under the tabs. */
+.tabbar::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: inherit;
+    border-top: none;
 }
 body.no-tabbar .tabbar { display: none; }
 .tab {
