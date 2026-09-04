@@ -1,6 +1,6 @@
 # AMS PomoTimer
 
-A mobile-first Pomodoro timer with **phases**, not just a 25-minute countdown. A session walks you through start-up, preparation, one or more Pomodoros with pauses, and a cool-down. It is a PWA: install it to your phone's home screen and it works offline.
+A Pomodoro timer for the phone, with **phases**, not just a 25-minute countdown. A session walks you through start-up, preparation, one or more Pomodoros with pauses, and a cool-down. It is a PWA: install it to your phone's home screen and it works offline.
 
 **Live:** https://marsch124.github.io/AMS-PomoTimer/
 
@@ -23,7 +23,8 @@ A mobile-first Pomodoro timer with **phases**, not just a 25-minute countdown. A
 - **Export / import** — Templates, history and settings as one JSON file; share the backup straight to Files, Mail or AirDrop; a gentle reminder when the last backup is old.
 - **Share templates** — As a QR code (scan with the camera) or a link; paste a link or code under Settings to import.
 - **German** — Full German translation, switchable in Settings; voice announcements follow.
-- **Larger text and wide screens** — Two larger text sizes; landscape and iPad layouts put the ring beside the controls.
+- **Larger text** — Two larger text sizes for reading without glasses.
+- **Phone only** — Designed for a phone held upright; no tablet or desktop layout.
 - **Shortcut links** — `?action=start&template=Name`, `?action=quick&min=25`, `?action=last` for Shortcuts, automations and bookmarks.
 - **Dark / light** — Follows the system, or pick one. Deep indigo with hot pink, sunshine, cyan, lime, turquoise and violet; warm cream in light mode.
 - **Hand-drawn icons** — Every icon in the app, including the app icon, is drawn by hand as a few SVG strokes. No emoji, no icon font, no stock set.
@@ -90,9 +91,12 @@ Then open http://localhost:7794.
 
 ## Version history
 
+**v1.6.1 (2026-09-03)**
+- Phone only: the tablet and landscape layout was removed.
+
 **v1.6.0 (2026-09-03)**
 - Share templates as QR code or link (own QR encoder, no dependencies); paste-to-import; share backup via the system share sheet; monthly backup reminder.
-- German language, larger text sizes, landscape / iPad layout, shortcut links.
+- German language, larger text sizes, shortcut links.
 
 **v1.5.0 (2026-09-03)**
 - Daily goal ring with streak on the Timer tab; celebration on reaching it.
