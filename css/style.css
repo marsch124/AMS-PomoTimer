@@ -857,6 +857,20 @@ select {
 .switch:checked::after { transform: translateX(1.3rem); }
 .switch:disabled { opacity: 0.4; }
 
+/* Collapsible section headings */
+.section-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    text-align: left;
+    padding: 0.55rem 0;
+}
+.section-toggle .toggle-chevron { color: var(--text-2); transition: transform 0.2s; }
+.section-toggle.open .toggle-chevron { transform: rotate(180deg); }
+.section-toggle .toggle-note { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--text-2); margin-left: 0.3rem; }
+.section-toggle:active { opacity: 0.7; }
+
 /* How this works */
 .help-card { padding: 0.4rem 1rem; }
 .help-item {

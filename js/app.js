@@ -1,6 +1,6 @@
 /* AMS PomoTimer — UI and app wiring */
 
-const APP_VERSION = '1.6.3';
+const APP_VERSION = '1.6.4';
 
 // After an automatic advance, the "1 / 5 min more" offer for the phase that
 // just rang out stays on screen for this long.
@@ -950,6 +950,19 @@ function renderTagStats(s) {
         </div>`).join('');
 }
 
+/* Collapsible sections in Settings; the open/closed state is remembered on this device. */
+function readToggle(id) {
+    try { return localStorage.getItem('pomo.ui.' + id) === 'open'; } catch (e) { return false; }
+}
+function setToggle(btn, open) {
+    const target = $('#' + btn.dataset.toggle);
+    if (!target) return;
+    target.hidden = !open;
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.classList.toggle('open', open);
+    try { localStorage.setItem('pomo.ui.' + btn.dataset.toggle, open ? 'open' : 'closed'); } catch (e) { /* ignore */ }
+}
+
 /* ================= Settings ================= */
 function renderSettings() {
     const s = Store.getSettings();
@@ -968,6 +981,8 @@ function renderSettings() {
     $('#set-voice').checked = s.voice && Voice.supported();
     $('#set-voice').disabled = !Voice.supported();
     $('#about-version').textContent = 'v' + APP_VERSION;
+    $('#about-version-short').textContent = 'v' + APP_VERSION;
+    $$('.section-toggle').forEach(btn => setToggle(btn, readToggle(btn.dataset.toggle)));
     $('#set-wake').disabled = !('wakeLock' in navigator);
     $('#set-vibrate').disabled = !('vibrate' in navigator);
     $('#set-notify').disabled = !('Notification' in window);
@@ -1262,6 +1277,10 @@ function bind() {
         e.target.value = v;
         Store.saveSettings({ dailyGoal: v });
         toast(v ? t('Daily goal: {n} Pomodoros', { n: v }) : t('Daily goal off'));
+    });
+    $('#screen-settings').addEventListener('click', e => {
+        const btn = e.target.closest('.section-toggle');
+        if (btn) setToggle(btn, btn.getAttribute('aria-expanded') !== 'true');
     });
     $('#chart-days').addEventListener('click', chartTap);
     $('#chart-hours').addEventListener('click', chartTap);

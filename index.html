@@ -502,8 +502,11 @@
                 </div>
             </div>
 
-            <h2 class="section-title">How this works</h2>
-            <div class="card help-card">
+            <button class="section-title section-toggle" data-toggle="help-card" aria-expanded="false">
+                <span>How this works</span>
+                <svg class="ic ic-sm toggle-chevron"><use href="#i-down"/></svg>
+            </button>
+            <div class="card help-card" id="help-card" hidden>
                 <div class="help-item">
                     <div class="help-icon" style="--c:var(--phase-startup)"><svg class="ic"><use href="#i-sunrise"/></svg></div>
                     <div>
@@ -569,11 +572,20 @@
                 </div>
             </div>
 
-            <h2 class="section-title">Version</h2>
-            <div class="card version-card">
+            <button class="section-title section-toggle" data-toggle="version-card" aria-expanded="false">
+                <span>Version <span class="toggle-note" id="about-version-short"></span></span>
+                <svg class="ic ic-sm toggle-chevron"><use href="#i-down"/></svg>
+            </button>
+            <div class="card version-card" id="version-card" hidden>
                 <div class="version-head">
                     <span class="version-name">AMS PomoTimer</span>
                     <span class="version-num" id="about-version"></span>
+                </div>
+                <div class="version-block">
+                    <div class="version-title">1.6.4 <span class="muted">· 3 September 2026</span></div>
+                    <ul data-i18n-html="ver.1.6.4">
+                        <li><b>Tidier Settings.</b> "How this works" and "Version" are folded away by default; tap the heading to open them. The colour legend under the quick-start cards is now one small line.</li>
+                    </ul>
                 </div>
                 <div class="version-block">
                     <div class="version-title">1.6.2 <span class="muted">· 3 September 2026</span></div>

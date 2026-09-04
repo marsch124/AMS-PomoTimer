@@ -91,6 +91,9 @@ Then open http://localhost:7794.
 
 ## Version history
 
+**v1.6.4 (2026-09-03)**
+- "How this works" and "Version" in Settings fold away; compact one-line colour legend.
+
 **v1.6.2 (2026-09-03)**
 - Colour legend under the quick-start cards explaining the phase bar.
 
