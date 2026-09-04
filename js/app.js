@@ -1,6 +1,6 @@
 /* AMS PomoTimer — UI and app wiring */
 
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '1.9.1';
 
 // A paused or waiting session nudges after this long, and after the longer
 // stretch the app asks what to do with it.
