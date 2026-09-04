@@ -71,10 +71,15 @@
     --phase-cooldown: #9333EA;
 }
 
+/* The document background is what the phone paints in the strip it keeps
+   below the web app's viewport (home-indicator area). On tabbed screens it
+   takes the tab bar colour so the bar appears to run to the edge; on the
+   timer, summary and editor screens (no tab bar) it takes the page colour. */
 html {
-    background: var(--bg);
+    background: var(--bg-2);
     -webkit-text-size-adjust: 100%;
 }
+html.plain-bottom { background: var(--bg); }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -930,27 +935,13 @@ select {
     right: 0;
     bottom: 0;
     height: calc(var(--tabbar-h) + var(--safe-bottom));
-    /* The tabs sit as low as they can: only a sliver is left for the home
-       indicator, which is a thin line at the very edge. */
+    /* The tabs sit at the bottom of the viewport; the phone keeps its own
+       strip below for the home indicator. */
     padding-bottom: max(6px, calc(var(--safe-bottom) - 22px));
-    background: color-mix(in srgb, var(--bg-2) 92%, transparent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: var(--bg-2);
     border-top: 1px solid var(--border);
     display: flex;
     z-index: 20;
-}
-/* Paint the bar colour into anything the phone exposes below the viewport
-   (rubber-band bounce, inset area), so no pale strip shows under the tabs. */
-.tabbar::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    height: 120px;
-    background: inherit;
-    border-top: none;
 }
 body.no-tabbar .tabbar { display: none; }
 .tab {

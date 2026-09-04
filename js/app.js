@@ -1,6 +1,6 @@
 /* AMS PomoTimer — UI and app wiring */
 
-const APP_VERSION = '1.6.7';
+const APP_VERSION = '1.6.8';
 
 // After an automatic advance, the "1 / 5 min more" offer for the phase that
 // just rang out stays on screen for this long.
@@ -260,6 +260,7 @@ function showScreen(name) {
     currentScreen = name;
     $$('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-' + name));
     document.body.classList.toggle('no-tabbar', NO_TABBAR.has(name));
+    document.documentElement.classList.toggle('plain-bottom', NO_TABBAR.has(name));
     document.body.dataset.tab = TAB_OF[name];
     $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === TAB_OF[name]));
     const screen = $('#screen-' + name);
