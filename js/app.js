@@ -1,6 +1,6 @@
 /* AMS PomoTimer — UI and app wiring */
 
-const APP_VERSION = '1.6.4';
+const APP_VERSION = '1.6.5';
 
 // After an automatic advance, the "1 / 5 min more" offer for the phase that
 // just rang out stays on screen for this long.
@@ -652,6 +652,7 @@ Timer.on('tick', ({ secondsLeft }) => {
 });
 
 Timer.on('done', ({ run, entry }) => {
+    if (updatePending) setTimeout(() => { updateReloading = true; location.reload(); }, 1500);
     lastRenderedIndex = -1;
     Wake.release();
     syncKeepAlive();
@@ -1304,6 +1305,7 @@ function bind() {
     $('#set-textsize').addEventListener('change', e => { Store.saveSettings({ textSize: e.target.value }); applyTheme(); });
     $('#btn-export').addEventListener('click', exportData);
     $('#btn-share-backup').addEventListener('click', shareBackup);
+    $('#btn-update').addEventListener('click', checkForUpdate);
     $('#btn-paste-import').addEventListener('click', async () => {
         const v = await promptDialog(t('Paste a PomoTimer template link or code'), '', t('Import'));
         if (v) importFromLink(v);
@@ -1384,6 +1386,25 @@ function handleLaunchAction() {
     return false;
 }
 
+let swRegistration = null;
+let updateReloading = false;
+function onUpdateReady() {
+    if (updateReloading) return;
+    if (!Timer.isActive()) { updateReloading = true; location.reload(); return; }
+    toast(t('Update ready. It is applied when the session ends.'), 4000);
+    updatePending = true;
+}
+let updatePending = false;
+
+async function checkForUpdate() {
+    toast(t('Checking for an update…'), 1500);
+    try {
+        if (swRegistration) await swRegistration.update();
+        // Give a waiting worker a moment to install; otherwise just reload.
+        setTimeout(() => { if (!updateReloading) { updateReloading = true; location.reload(); } }, 2500);
+    } catch (e) { location.reload(); }
+}
+
 function init() {
     applyTheme();
     applyLanguage();
@@ -1401,7 +1422,15 @@ function init() {
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed', e));
+        const hadController = !!navigator.serviceWorker.controller;
+        navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+            .then(reg => { swRegistration = reg; })
+            .catch(e => console.warn('SW registration failed', e));
+        // A new version has taken over: reload so the fresh files show, unless
+        // a session is running, in which case offer it instead.
+        navigator.serviceWorker.addEventListener('message', e => {
+            if (e.data && e.data.type === 'UPDATED' && hadController) onUpdateReady();
+        });
     }
 }
 

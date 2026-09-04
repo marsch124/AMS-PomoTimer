@@ -1,7 +1,7 @@
 /* AMS PomoTimer — service worker (offline cache)
    Paths are relative to this file so the app works from any folder or repo. */
 
-const CACHE_NAME = 'ams-pomotimer-v11';
+const CACHE_NAME = 'ams-pomotimer-v12';
 
 const urlsToCache = [
     './',
@@ -25,7 +25,9 @@ const urlsToCache = [
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) =>
-            Promise.all(urlsToCache.map((url) => cache.add(url).catch((e) => console.warn('Cache skip', url, e))))
+            // cache: 'reload' skips the browser's HTTP cache, so a new version
+            // is fetched from the server rather than from a stale copy.
+            Promise.all(urlsToCache.map((url) => cache.add(new Request(url, { cache: 'reload' })).catch((e) => console.warn('Cache skip', url, e))))
         )
     );
     self.skipWaiting();
@@ -36,6 +38,8 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((names) =>
             Promise.all(names.filter((n) => n.startsWith('ams-pomotimer-') && n !== CACHE_NAME).map((n) => caches.delete(n)))
         ).then(() => self.clients.claim())
+         .then(() => self.clients.matchAll({ type: 'window' }))
+         .then((clients) => clients.forEach((c) => c.postMessage({ type: 'UPDATED', cache: CACHE_NAME })))
     );
 });
 

@@ -143,6 +143,10 @@ const I18N = (() => {
         'help.7.title': 'Handy in der Tasche?', 'help.8.title': 'Verlauf, Tagesziel und deine Daten',
 
         // ---- Version blocks (HTML) ----
+        'ver.1.6.5': '<li><b>Updates kommen von selbst.</b> Sobald eine neue Version geladen ist, lädt die App sich selbst neu (oder, wenn eine Sitzung läuft, gleich nach deren Ende). Unter Einstellungen → Daten gibt es außerdem <b>Jetzt aktualisieren</b>.</li>',
+        'Update the app': 'App aktualisieren', 'Fetches the newest version': 'Holt die neueste Version', 'Update now': 'Jetzt aktualisieren',
+        'Update ready. It is applied when the session ends.': 'Update bereit. Es wird nach Ende der Sitzung angewendet.',
+        'Checking for an update…': 'Suche nach einem Update …',
         'ver.1.6.4': '<li><b>Aufgeräumte Einstellungen.</b> „So funktioniert es“ und „Version“ sind standardmäßig eingeklappt; tippe auf die Überschrift, um sie zu öffnen. Die Farblegende unter den Schnellstart-Karten ist jetzt eine kleine Zeile.</li>',
         'ver.1.6.2': '<li><b>Farblegende.</b> Unter den Schnellstart-Karten erklärt eine Legende den farbigen Balken in jeder Karte: die Phasen der Reihe nach, jedes Stück so lang wie die Phase, in den Phasenfarben (Cyan Ankommen, Gelb Vorbereitung, Pink Pomodoro, Grün Pause, Türkis lange Pause, Violett Ausklang).</li>',
         'ver.1.6.1': '<li><b>Nur fürs Handy.</b> AMS PomoTimer ist für ein aufrecht gehaltenes Handy gemacht. Das Tablet- und Querformat-Layout aus 1.6.0 wurde entfernt; auf einem breiteren Bildschirm wird das Handy-Layout einfach zentriert.</li>',
