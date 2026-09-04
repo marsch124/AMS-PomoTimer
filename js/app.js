@@ -1,6 +1,6 @@
 /* AMS PomoTimer — UI and app wiring */
 
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.9.0';
 
 // A paused or waiting session nudges after this long, and after the longer
 // stretch the app asks what to do with it.
@@ -317,7 +317,9 @@ function renderHome() {
 
     const templates = Store.getTemplates();
     const lastId = Store.getLastTemplateId();
-    const ordered = templates.slice().sort((a, b) => (a.id === lastId ? -1 : b.id === lastId ? 1 : 0));
+    // The order is the one set on the Templates tab, so the cards stay where
+    // the user put them; the last-used one is only marked, not moved.
+    const ordered = templates;
     $('#quick-grid').innerHTML = ordered.map(t => `
         <button class="quick-card" data-id="${esc(t.id)}" style="--tpl-color:${esc(t.color || '#FF2E63')}">
             <span class="quick-icon">${icon(Store.iconFor(t))}</span>
@@ -810,6 +812,7 @@ function renderTemplates() {
     }
     el.innerHTML = templates.map(t => `
         <div class="template-row" style="--tpl-color:${esc(t.color || '#FF2E63')}">
+            <button class="tpl-grip" aria-label="${esc(I18N.t('Reorder'))}">${icon('grip')}</button>
             <button class="tpl-edit-area" data-edit="${esc(t.id)}">
                 <span class="tpl-icon">${icon(Store.iconFor(t))}</span>
                 <span class="tpl-body">
@@ -820,6 +823,69 @@ function renderTemplates() {
             </button>
             <button class="tpl-play" data-start="${esc(t.id)}" aria-label="${esc(I18N.t('Start {name}', { name: t.name }))}">${icon('play')}</button>
         </div>`).join('');
+}
+
+/* Drag a template by its grip to reorder the list. Rows slide out of the
+   way while dragging; the new order is written when the finger lifts. */
+function bindTemplateReorder() {
+    const list = $('#template-list');
+    let drag = null;
+
+    const shift = () => {
+        drag.rows.forEach((r, i) => {
+            if (i === drag.index) return;
+            let off = 0;
+            if (drag.target > drag.index && i > drag.index && i <= drag.target) off = -drag.step;
+            else if (drag.target < drag.index && i >= drag.target && i < drag.index) off = drag.step;
+            r.style.transform = off ? `translateY(${off}px)` : '';
+        });
+    };
+
+    list.addEventListener('pointerdown', e => {
+        const grip = e.target.closest('.tpl-grip');
+        if (!grip) return;
+        e.preventDefault();
+        const rows = $$('.template-row', list);
+        const row = grip.closest('.template-row');
+        const index = rows.indexOf(row);
+        if (index < 0 || rows.length < 2) return;
+        const rects = rows.map(r => r.getBoundingClientRect());
+        const step = index < rows.length - 1 ? rects[index + 1].top - rects[index].top : rects[index].top - rects[index - 1].top;
+        drag = { rows, rects, row, index, target: index, startY: e.clientY, step };
+        try { grip.setPointerCapture(e.pointerId); } catch (err) { /* not captured, still works */ }
+        list.classList.add('reordering');
+        row.classList.add('dragging');
+        vibrate([15]);
+    });
+
+    list.addEventListener('pointermove', e => {
+        if (!drag) return;
+        const dy = e.clientY - drag.startY;
+        drag.row.style.transform = `translateY(${dy}px)`;
+        const centre = drag.rects[drag.index].top + drag.rects[drag.index].height / 2 + dy;
+        let target = drag.index;
+        for (let i = drag.index + 1; i < drag.rects.length; i++) {
+            if (centre > drag.rects[i].top + drag.rects[i].height / 2) target = i; else break;
+        }
+        for (let i = drag.index - 1; i >= 0; i--) {
+            if (centre < drag.rects[i].top + drag.rects[i].height / 2) target = i; else break;
+        }
+        if (target !== drag.target) { drag.target = target; shift(); }
+    });
+
+    const drop = () => {
+        if (!drag) return;
+        const { index, target, rows } = drag;
+        rows.forEach(r => { r.style.transform = ''; r.classList.remove('dragging'); });
+        list.classList.remove('reordering');
+        drag = null;
+        suppressClickUntil = Date.now() + 400;
+        if (index !== target && Store.reorderTemplates(index, target)) {
+            renderTemplates();
+            toast(t('Order saved'), 1400);
+        }
+    };
+    ['pointerup', 'pointercancel'].forEach(ev => list.addEventListener(ev, drop));
 }
 
 /* ================= Editor ================= */
@@ -1186,6 +1252,7 @@ function bind() {
     });
     bindLongPress($('#quick-grid'), '.quick-card[data-id]', card => openStartSheet(Store.getTemplate(card.dataset.id)));
     bindLongPress($('#template-list'), '.tpl-play', btn => openStartSheet(Store.getTemplate(btn.dataset.start)));
+    bindTemplateReorder();
 
     // Start sheet
     $('#sheet').addEventListener('click', e => { if (e.target === $('#sheet')) closeSheet(); });

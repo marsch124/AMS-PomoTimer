@@ -53,7 +53,6 @@ const I18N = (() => {
         'Voice announcements on.': 'Sprachansagen sind eingeschaltet.',
         '{n} seconds': '{n} Sekunden', '1 minute': '1 Minute', '{n} minutes': '{n} Minuten',
         // ---- Templates / editor ----
-        'Each template is a sequence of phases. Tap to edit, use the play button to start, hold play to adjust first.': 'Jede Vorlage ist eine Abfolge von Phasen. Tippen zum Bearbeiten, Play zum Starten, Play gedrückt halten zum Anpassen.',
         'No templates yet. Tap the plus button to create one, or restore the built-ins in Settings.': 'Noch keine Vorlagen. Tippe auf Plus, um eine anzulegen, oder stelle die mitgelieferten in den Einstellungen wieder her.',
         'Edit template': 'Vorlage bearbeiten', 'Name': 'Name', 'e.g. Morning deep work': 'z. B. Deep Work am Morgen',
         'Icon': 'Symbol', 'Colour': 'Farbe', 'Tags': 'Tags', 'custom': 'eigener', 'New tag': 'Neuer Tag', 'Add': 'Hinzufügen',
@@ -143,6 +142,9 @@ const I18N = (() => {
         'help.7.title': 'Handy in der Tasche?', 'help.8.title': 'Verlauf, Tagesziel und deine Daten',
 
         // ---- Version blocks (HTML) ----
+        'ver.1.9.0': '<li><b>Bring die Vorlagen in deine eigene Reihenfolge.</b> Zieh im Tab Vorlagen eine Vorlage an den Punkten links. Die Schnellstart-Karten im Tab Timer folgen dieser Reihenfolge, so stehen die meistgenutzten oben.</li><li>Die zuletzt benutzte Karte ist weiterhin markiert, springt aber nicht mehr nach vorne, damit deine Reihenfolge bleibt.</li>',
+        'Reorder': 'Umsortieren', 'Order saved': 'Reihenfolge gespeichert',
+        'Each template is a sequence of phases. Tap to edit, use the play button to start, hold play to adjust first. Drag the dots to reorder; the quick-start cards follow this order.': 'Jede Vorlage ist eine Abfolge von Phasen. Tippen zum Bearbeiten, Play zum Starten, Play gedrückt halten zum Anpassen. Zieh an den Punkten, um umzusortieren; die Schnellstart-Karten folgen dieser Reihenfolge.',
         'ver.1.8.0': '<li><b>Eine Notiz zum Abschluss.</b> Die Zusammenfassung fragt, wie es gelaufen ist. Was du schreibst, bleibt bei der Sitzung, und der Verlauf wird so zu einem Protokoll dessen, was du wirklich getan hast, nicht nur wie viele Pomodoros du gezählt hast.</li><li>Tippe im Verlauf auf eine Sitzung, um die Notiz später zu schreiben oder zu ändern.</li>',
         'How did it go?': 'Wie ist es gelaufen?', '(optional)': '(optional)',
         'e.g. Draft finished, numbers still missing': 'z. B. Entwurf fertig, Zahlen fehlen noch',

@@ -84,6 +84,9 @@
         <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M13.4 3.4L6.2 13.2h5.2l-1 7.4 7.4-9.9h-5.3z"/>
         </symbol>
+        <symbol id="i-grip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8.7 7.2h.1"/><path d="M15.3 7.1h.1"/><path d="M8.7 12h.1"/><path d="M15.3 12h.1"/><path d="M8.7 16.8h.1"/><path d="M15.3 16.9h.1"/>
+        </symbol>
         <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4.6 5.2c2.4-.3 4.8-.4 7.2-.2l7.6 7.6c.6.6.6 1.6 0 2.2l-4.7 4.7c-.6.6-1.6.6-2.2 0L4.8 11.8c-.4-2.2-.4-4.4-.2-6.6z"/><path d="M8.6 8.4h.2"/>
         </symbol>
@@ -310,7 +313,7 @@
             <button class="icon-btn accent" id="btn-new-template" aria-label="New template"><svg class="ic"><use href="#i-plus"/></svg></button>
         </header>
         <main class="content">
-            <p class="section-hint">Each template is a sequence of phases. Tap to edit, use the play button to start, hold play to adjust first.</p>
+            <p class="section-hint">Each template is a sequence of phases. Tap to edit, use the play button to start, hold play to adjust first. Drag the dots to reorder; the quick-start cards follow this order.</p>
             <div id="template-list" class="template-list"></div>
         </main>
     </section>
@@ -527,7 +530,7 @@
                     <div class="help-icon" style="--c:var(--phase-prep)"><svg class="ic"><use href="#i-list"/></svg></div>
                     <div>
                         <div class="help-title">Templates</div>
-                        <p data-i18n-html="help.2">A template is a saved sequence of phases. The <b>Templates</b> tab lets you add, rename, reorder and time each phase, and pick an icon and colour. <b>Add a Pomodoro block</b> appends several Pomodoros with pauses in one go. Built-ins can be edited or deleted; <b>Restore built-in templates</b> above brings them back.</p>
+                        <p data-i18n-html="help.2">A template is a saved sequence of phases. The <b>Templates</b> tab lets you add, rename, reorder and time each phase, and pick an icon and colour. <b>Add a Pomodoro block</b> appends several Pomodoros with pauses in one go. Drag a template by the dots on its left to put the list in your own order; the quick-start cards follow it. Built-ins can be edited or deleted; <b>Restore built-in templates</b> above brings them back.</p>
                     </div>
                 </div>
                 <div class="help-item">
@@ -589,6 +592,13 @@
                 <div class="version-head">
                     <span class="version-name">AMS PomoTimer</span>
                     <span class="version-num" id="about-version"></span>
+                </div>
+                <div class="version-block">
+                    <div class="version-title">1.9.0 <span class="muted">· 4 September 2026</span></div>
+                    <ul data-i18n-html="ver.1.9.0">
+                        <li><b>Put the templates in your own order.</b> On the Templates tab, drag a template by the dots on its left. The quick-start cards on the Timer tab follow that order, so the ones you use most can sit at the top.</li>
+                        <li>The card you used last is still marked, but it no longer jumps to the front, because your order stays put.</li>
+                    </ul>
                 </div>
                 <div class="version-block">
                     <div class="version-title">1.8.0 <span class="muted">· 4 September 2026</span></div>

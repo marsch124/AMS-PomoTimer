@@ -91,6 +91,9 @@ Then open http://localhost:7794.
 
 ## Version history
 
+**v1.9.0 (2026-09-04)**
+- Drag templates into your own order; the quick-start cards follow it.
+
 **v1.8.0 (2026-09-04)**
 - A closing note on the summary screen, kept with the session; tap a session in History to write or change it later.
 

@@ -748,6 +748,25 @@ select {
 .template-row .tpl-play .ic { width: 1.4rem; height: 1.4rem; margin-left: 2px; }
 .template-row .tpl-play:active { transform: scale(0.94); }
 .tpl-edit-area { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.7rem; text-align: left; }
+.template-row .tpl-grip {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-2);
+    flex-shrink: 0;
+    margin: -0.7rem 0 -0.7rem -0.5rem;
+    padding: 0.7rem 0.15rem;
+    /* the browser must not steal the drag for scrolling */
+    touch-action: none;
+}
+.template-row .tpl-grip .ic { width: 1.3rem; height: 1.3rem; }
+.template-list.reordering .template-row { transition: transform 0.16s ease; }
+.template-list.reordering .template-row.dragging {
+    transition: none;
+    position: relative;
+    z-index: 5;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.35);
+}
+.template-list.reordering .template-row.dragging .tpl-grip { color: var(--accent); }
 
 /* ---------- Editor ---------- */
 .field { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }

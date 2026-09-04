@@ -257,6 +257,16 @@ const Store = (() => {
         return tpl;
     }
 
+    /* Move a template within the list; the list order is the order shown. */
+    function reorderTemplates(from, to) {
+        const list = getTemplates();
+        if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return false;
+        const [moved] = list.splice(from, 1);
+        list.splice(to, 0, moved);
+        saveTemplates(list);
+        return true;
+    }
+
     function deleteTemplate(id) {
         saveTemplates(getTemplates().filter(t => t.id !== id));
     }
@@ -500,7 +510,7 @@ const Store = (() => {
 
     return {
         PHASE_TYPES, ICONS, COLORS, TAG_PRESETS, uid, step, iconFor, cleanTags, allTags,
-        getTemplates, getTemplate, saveTemplate, deleteTemplate, newTemplate, duplicateTemplate, restoreBuiltins, quickTemplate, templateTotalSec,
+        getTemplates, getTemplate, saveTemplate, reorderTemplates, deleteTemplate, newTemplate, duplicateTemplate, restoreBuiltins, quickTemplate, templateTotalSec,
         getSettings, saveSettings,
         getHistory, addHistory, updateHistory, deleteHistory, clearHistory, stats, insights, dayKey,
         getRun, saveRun, getLastTemplateId, setLastTemplateId,
