@@ -411,6 +411,20 @@ select {
     opacity: 0.4;
 }
 
+/* ---------- Phase colour legend under the quick-start cards ---------- */
+.phase-legend {
+    margin-top: 0.8rem;
+    padding: 0.7rem 0.8rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+.legend-text { font-size: 0.8rem; color: var(--text-2); line-height: 1.35; margin-bottom: 0.5rem; }
+.legend-row { display: flex; flex-wrap: wrap; gap: 0.35rem 0.7rem; }
+.legend-item { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; font-weight: 700; color: var(--text); }
+.legend-item .ic { color: var(--text-2); }
+.legend-swatch { width: 0.9rem; height: 0.55rem; border-radius: 3px; display: inline-block; }
+
 /* ---------- Stats ---------- */
 .stat-row {
     display: grid;

@@ -13,6 +13,7 @@ const I18N = (() => {
         'Quick start': 'Schnellstart',
         'Tap a template to start it right away. Hold it to adjust first.': 'Tippe auf eine Vorlage, um sofort zu starten. Halte sie gedrückt, um vorher etwas anzupassen.',
         'Quick timer': 'Schnell-Timer',
+        'The bar in each card is the session: one block per phase, in order, as long as the phase lasts.': 'Der Balken in jeder Karte ist die Sitzung: ein Block pro Phase, der Reihe nach, so lang wie die Phase dauert.',
         'One single Pomodoro, no other phases.': 'Ein einzelner Pomodoro, keine weiteren Phasen.',
         'Minutes': 'Minuten', 'Start': 'Start', 'Today': 'Heute', 'Yesterday': 'Gestern',
         'Pomodoros': 'Pomodoros', 'Focus': 'Fokus', 'Sessions': 'Sitzungen',
@@ -141,6 +142,7 @@ const I18N = (() => {
         'help.7.title': 'Handy in der Tasche?', 'help.8.title': 'Verlauf, Tagesziel und deine Daten',
 
         // ---- Version blocks (HTML) ----
+        'ver.1.6.2': '<li><b>Farblegende.</b> Unter den Schnellstart-Karten erklärt eine Legende den farbigen Balken in jeder Karte: die Phasen der Reihe nach, jedes Stück so lang wie die Phase, in den Phasenfarben (Cyan Ankommen, Gelb Vorbereitung, Pink Pomodoro, Grün Pause, Türkis lange Pause, Violett Ausklang).</li>',
         'ver.1.6.1': '<li><b>Nur fürs Handy.</b> AMS PomoTimer ist für ein aufrecht gehaltenes Handy gemacht. Das Tablet- und Querformat-Layout aus 1.6.0 wurde entfernt; auf einem breiteren Bildschirm wird das Handy-Layout einfach zentriert.</li>',
         'ver.1.6.0': '<li><b>Teilen und sichern.</b> Vorlagen als QR-Code oder Link teilen; Empfänger scannen mit der Kamera oder fügen den Link unter Einstellungen → Einfügen ein. Die Sicherungsdatei lässt sich direkt über das Teilen-Menü an Dateien, Mail oder AirDrop geben. Eine sanfte Erinnerung, wenn die letzte Sicherung über einen Monat zurückliegt.</li><li><b>Deutsch.</b> Die ganze App auf Deutsch, umschaltbar unter Darstellung. Sprachansagen sprechen die gewählte Sprache.</li><li><b>Größerer Text.</b> Zwei größere Textstufen für Leute, die nicht nach der Brille suchen wollen.</li><li><b>Kurzbefehl-Links.</b> <code>?action=start&amp;template=Name</code>, <code>?action=quick&amp;min=25</code> und <code>?action=last</code> starten Sitzungen aus Kurzbefehlen, Automationen oder Lesezeichen.</li>',
         'ver.1.5.0': '<li><b>Tagesziel.</b> Lege in den Einstellungen eine Anzahl Pomodoros pro Tag fest. Der Tab Timer zeigt einen Ring, der sich über den Tag füllt, wie viele noch fehlen und deine Serie an Tagen mit mindestens einem Pomodoro. Das Erreichen wird auf der Zusammenfassung gefeiert.</li><li><b>Verlaufsdiagramme.</b> Fokusminuten pro Tag der letzten vier Wochen, Fokus nach Tageszeit, aktuelle und längste Serie sowie deine beste Stunde. Tippe auf einen Balken für die genauen Zahlen.</li>',

@@ -91,6 +91,9 @@ Then open http://localhost:7794.
 
 ## Version history
 
+**v1.6.2 (2026-09-03)**
+- Colour legend under the quick-start cards explaining the phase bar.
+
 **v1.6.1 (2026-09-03)**
 - Phone only: the tablet and landscape layout was removed.
 

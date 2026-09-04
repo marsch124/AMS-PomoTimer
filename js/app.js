@@ -1,6 +1,6 @@
 /* AMS PomoTimer — UI and app wiring */
 
-const APP_VERSION = '1.6.1';
+const APP_VERSION = '1.6.2';
 
 // After an automatic advance, the "1 / 5 min more" offer for the phase that
 // just rang out stays on screen for this long.
@@ -300,6 +300,8 @@ function renderHome() {
         </button>`).join('') +
         `<button class="quick-card add-card" data-action="new">${icon('plus')} ${esc(I18N.t('New template'))}</button>`;
 
+    renderPhaseLegend();
+
     const s = Store.stats();
     $('#home-stats').innerHTML = statsHtml([
         { value: s.today.pomodoros, label: t('Pomodoros') },
@@ -309,6 +311,14 @@ function renderHome() {
     renderGoalCard(s);
     $('#home-version').textContent = 'AMS PomoTimer v' + APP_VERSION;
     maybeBackupReminder();
+}
+
+/* What the coloured bar in each card means: one segment per phase, in
+   order, as long as the phase, in the phase colour. */
+function renderPhaseLegend() {
+    const items = Object.entries(Store.PHASE_TYPES).map(([type, info]) =>
+        `<span class="legend-item"><span class="legend-swatch" style="background:${info.color}"></span>${icon(info.icon, 'ic-xs')} ${esc(t(info.label))}</span>`).join('');
+    $('#phase-legend').innerHTML = `<div class="legend-text">${esc(t('The bar in each card is the session: one block per phase, in order, as long as the phase lasts.'))}</div><div class="legend-row">${items}</div>`;
 }
 
 /* About once a month, if there is something worth keeping and no export for a while. */
