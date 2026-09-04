@@ -143,6 +143,7 @@ const I18N = (() => {
         'help.7.title': 'Handy in der Tasche?', 'help.8.title': 'Verlauf, Tagesziel und deine Daten',
 
         // ---- Version blocks (HTML) ----
+        'ver.1.6.6': '<li>Die unteren Tabs sitzen etwas tiefer am Bildschirm.</li>',
         'ver.1.6.5': '<li><b>Updates kommen von selbst.</b> Sobald eine neue Version geladen ist, lädt die App sich selbst neu (oder, wenn eine Sitzung läuft, gleich nach deren Ende). Unter Einstellungen → Daten gibt es außerdem <b>Jetzt aktualisieren</b>.</li>',
         'Update the app': 'App aktualisieren', 'Fetches the newest version': 'Holt die neueste Version', 'Update now': 'Jetzt aktualisieren',
         'Update ready. It is applied when the session ends.': 'Update bereit. Es wird nach Ende der Sitzung angewendet.',
